@@ -254,7 +254,7 @@ export function BiolinksView() {
                     <td className="hidden px-4 py-3 text-xs tabular-nums md:table-cell">
                       {biolink.uniqueViews}
                       <span className="block text-content-muted">
-                        {biolink.totalViews} vues
+                        {biolink.totalViews} {biolink.totalViews === 0 || biolink.totalViews === 1 ? "vue" : "vues"}
                       </span>
                     </td>
                     <td className="px-4 py-3">

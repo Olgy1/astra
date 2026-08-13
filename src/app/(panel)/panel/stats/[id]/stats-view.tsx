@@ -118,7 +118,7 @@ export function StatsView({ biolinkId, slug }: { biolinkId: string; slug: string
                   <div
                     key={point.date}
                     className="group relative flex flex-1 flex-col justify-end"
-                    title={`${point.date} : ${point.views} vue(s)`}
+                    title={`${point.date} : ${point.views} ${point.views === 0 || point.views === 1 ? "vue" : "vues"}`}
                   >
                     <div
                       className="w-full rounded-t bg-accent/70 transition-colors hover:bg-accent"

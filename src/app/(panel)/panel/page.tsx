@@ -75,7 +75,8 @@ export default async function PanelPage() {
                   <Link href={`/panel/edit/${biolink.id}`} className="min-w-0 flex-1">
                     <p className="text-sm font-medium">astra.is-a.dev/{biolink.slug}</p>
                     <p className="mt-0.5 text-xs text-content-muted">
-                      {biolink._count.links} liens · {biolink._count.blocks} blocks · {biolink.uniqueViews} vues uniques
+                      {biolink._count.links} liens · {biolink._count.blocks} blocks · {biolink.uniqueViews}{" "}
+                      {biolink.uniqueViews === 0 || biolink.uniqueViews === 1 ? "vue unique" : "vues uniques"}
                     </p>
                   </Link>
                   <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs sm:inline ${biolink.isPublished ? "bg-success/15 text-success" : "bg-surface-3 text-content-muted"}`}>

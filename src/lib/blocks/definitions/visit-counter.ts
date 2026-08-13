@@ -20,6 +20,18 @@ const configSchema = z.object({
 
 export type VisitCounterBlockConfig = z.infer<typeof configSchema>;
 
+/**
+ * Accord du libellé avec le compteur : « 0 vue », « 1 vue », « 2 vues ».
+ * Le libellé par défaut (« vues ») est au pluriel : on retire le « s » quand
+ * le compte vaut 0 ou 1. Pour un libellé personnalisé, on ajoute un « s »
+ * dès que le compte vaut 0 ou plus de 1 (repli simple et prévisible).
+ */
+export function pluralizeLabel(label: string, count: number): string {
+  if (label === "vues") return count === 0 || count === 1 ? "vue" : "vues";
+  if (count === 1) return label.replace(/s$/i, "");
+  return label;
+}
+
 export const visitCounterBlock: BlockDefinition<VisitCounterBlockConfig> = {
   type: "visit_counter",
   label: "Compteur de visites",

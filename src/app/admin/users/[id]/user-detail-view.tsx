@@ -488,7 +488,8 @@ export function UserDetailView({ userId }: { userId: string }) {
                     astra.is-a.dev/{biolink.slug}
                   </Link>
                   <p className="mt-0.5 text-xs text-content-muted">
-                    {biolink._count.links} liens · {biolink._count.blocks} blocks · {biolink.uniqueViews} vues uniques
+                    {biolink._count.links} liens · {biolink._count.blocks} blocks · {biolink.uniqueViews}{" "}
+                    {biolink.uniqueViews === 0 || biolink.uniqueViews === 1 ? "vue unique" : "vues uniques"}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5 text-xs">
