@@ -31,6 +31,11 @@ const PORT = Number(process.env.PORT || 8787);
 const API_BASE = "https://discord.com/api/v10";
 const GATEWAY_VERSION = 10;
 
+// Discord exige un User-Agent descriptif sur TOUTES les requêtes à son API.
+// Sans lui (ou avec l'UA générique de Node), le WAF Cloudflare devant
+// discord.com bloque les requêtes venant d'IP de datacenter (Render, etc.).
+const USER_AGENT = "DiscordBot (https://github.com/Olgy1/astra, 1.0.0)";
+
 // Intents : GUILDS (1<<0) + GUILD_MEMBERS (1<<1) + GUILD_PRESENCES (1<<8).
 // Les deux derniers sont « privilégiés » : à activer dans le portail
 // développeur (Bot → Privileged Gateway Intents).
@@ -103,10 +108,12 @@ function logTrackedUsers() {
 
 async function getGatewayUrl() {
   const response = await fetch(`${API_BASE}/gateway/bot`, {
-    headers: { Authorization: `Bot ${TOKEN}` },
+    headers: { Authorization: `Bot ${TOKEN}`, "User-Agent": USER_AGENT },
   });
   if (!response.ok) {
-    const text = await response.text();
+    // Très souvent, ce n'est pas du JSON mais une page d'erreur Cloudflare :
+    // on tronque pour garder le log lisible.
+    const text = (await response.text()).slice(0, 300);
     throw new Error(`Impossible de récupérer l'URL du gateway (HTTP ${response.status}) : ${text}`);
   }
   const data = await response.json();
@@ -164,7 +171,10 @@ function requestAllMembers(guildId) {
 
 function connectGateway(url) {
   log(`connexion au gateway ${url}${sessionId ? " (resume)" : ""}`);
-  gatewaySocket = new WebSocket(url, { handshakeTimeout: 15000 });
+  gatewaySocket = new WebSocket(url, {
+    handshakeTimeout: 15000,
+    headers: { "User-Agent": USER_AGENT },
+  });
 
   gatewaySocket.on("open", () => {
     reconnectDelayMs = 1000;
