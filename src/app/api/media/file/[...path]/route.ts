@@ -66,6 +66,9 @@ export async function GET(
     "Accept-Ranges": "bytes",
     "Cache-Control": "public, max-age=31536000, immutable",
     "X-Content-Type-Options": "nosniff",
+    // Les médias sont publics et peuvent être affichés depuis n'importe
+    // quelle origine (futur domaine is-a.dev, polices chargées en CORS...).
+    "Access-Control-Allow-Origin": "*",
   };
 
   const range = request.headers.get("range");
@@ -130,15 +133,8 @@ async function serveFromS3(
     result = await s3Client().send(command);
   } catch (error) {
     // Absent ou accès refusé : même réponse côté client, on ne distingue pas.
-    // Le header x-media-error est un outil de diagnostic (à retirer une fois
-    // la config S3 stable).
     console.error("[media] erreur S3 :", error);
-    return new Response("Not found", {
-      status: 404,
-      headers: {
-        "x-media-error": error instanceof Error ? error.message.slice(0, 200) : String(error),
-      },
-    });
+    return new Response("Not found", { status: 404 });
   }
 
   if (!result.Body) {
@@ -153,6 +149,7 @@ async function serveFromS3(
     "Accept-Ranges": "bytes",
     "Cache-Control": "public, max-age=31536000, immutable",
     "X-Content-Type-Options": "nosniff",
+    "Access-Control-Allow-Origin": "*",
   };
 
   if (result.ContentLength !== undefined) {
