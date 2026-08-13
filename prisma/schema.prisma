@@ -1,0 +1,486 @@
+// Schéma de données Astra Biolink
+// PostgreSQL — les champs de personnalisation sont en Json (JSONB côté
+// Postgres) pour pouvoir ajouter des blocks/widgets sans migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum MediaType {
+  AVATAR
+  BANNER
+  AUDIO
+  CURSOR
+  BACKGROUND
+  FONT
+}
+
+enum SlugTier {
+  RESERVED // interdit à l'inscription (mots réservés, marques, insultes)
+  PREMIUM  // attribuable par un admin uniquement
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum EmailType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  PASSWORD_CHANGED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_UNSUSPENDED
+  TWO_FACTOR_CHANGED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Utilisateurs et authentification
+// ---------------------------------------------------------------------------
+
+model User {
+  id       String @id @default(uuid()) @db.Uuid
+  // Pseudo tel que saisi, casse préservée : c'est ce qu'on affiche.
+  username String @unique @db.VarChar(32)
+  // Même pseudo en minuscules. Sert à deux choses :
+  //  - la connexion, qui doit être insensible à la casse (« Olgy » et
+  //    « olgy » sont la même personne) ;
+  //  - l'unicité, qui doit l'être aussi — sinon deux comptes « Olgy » et
+  //    « olgy » coexistent et deviennent indiscernables à l'œil.
+  // Colonne dédiée plutôt qu'un `WHERE lower(username) = ...` : ce dernier
+  // n'utiliserait pas l'index et ferait un balayage complet de la table à
+  // chaque connexion.
+  usernameLower String @unique @map("username_lower") @db.VarChar(32)
+  email         String @unique @db.VarChar(255)
+  // Null si le compte a été créé via OAuth Discord et n'a jamais défini
+  // de mot de passe. La connexion classique est alors impossible.
+  passwordHash String?    @map("password_hash")
+  role       Role       @default(MEMBER)
+  status     UserStatus @default(ACTIVE)
+
+  // Limite de pages pour un compte membre. NULL = limite par défaut
+  // (1 page). Un admin est toujours illimité, quel que soit ce champ.
+  pageLimit Int? @map("page_limit")
+
+  emailVerified   Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+
+  discordId       String? @unique @map("discord_id")
+  discordUsername String? @map("discord_username")
+  discordAvatar   String? @map("discord_avatar")
+
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+  // Secret TOTP chiffré en AES-256-GCM (voir lib/crypto.ts).
+  twoFactorSecret  String? @map("two_factor_secret")
+
+  // Badges de la plateforme attribués par un admin (ex: "verified", "admin").
+  // Simple tableau de chaînes : ajouter un badge ne demande aucune migration.
+  badges Json @default("[]")
+  // Hashs SHA-256 des codes de secours à usage unique. Un code consommé est
+  // retiré du tableau : sans eux, perdre son téléphone = perdre son compte.
+  twoFactorBackupCodes String[] @default([]) @map("two_factor_backup_codes")
+
+  // Motif affiché à l'utilisateur banni/suspendu, et fin de suspension.
+  statusReason    String?   @map("status_reason")
+  suspendedUntil  DateTime? @map("suspended_until")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  lastLogin DateTime? @map("last_login_at")
+
+  biolinks     Biolink[]
+  sessions     Session[]
+  tokens       VerificationToken[]
+  mediaAssets  MediaAsset[]
+  adminLogs    AdminLog[]          @relation("AdminLogActor")
+  reportsMade  Report[]            @relation("ReportReporter")
+  suspensionsMade Suspension[]     @relation("AdminSuspension")
+  emailLogs    EmailLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+// Une ligne par appareil connecté. Permet le multi-sessions et la
+// déconnexion à distance : supprimer la ligne invalide le refresh token.
+model Session {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  // On stocke un hash SHA-256 du refresh token, jamais le token en clair :
+  // une fuite de la base ne permet pas de rejouer les sessions.
+  refreshTokenHash String   @unique @map("refresh_token_hash")
+  userAgent        String?  @map("user_agent")
+  ipAddress        String?  @map("ip_address")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  lastUsedAt       DateTime @default(now()) @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// Tokens à usage unique pour la vérification d'email et le reset de mot
+// de passe. Hashés pour la même raison que les refresh tokens.
+model VerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      TokenType
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Biolinks
+// ---------------------------------------------------------------------------
+
+model Biolink {
+  id      String @id @default(uuid()) @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  slug    String @unique @db.VarChar(64)
+
+  title       String? @db.VarChar(120)
+  description String? @db.VarChar(500)
+
+  // Toute la personnalisation visuelle : couleurs, dégradés, opacité,
+  // bordures, ombres, effets, police, curseur. Structure validée par zod
+  // (lib/schemas/theme.ts) et non par la base — ajouter une option de
+  // thème ne demande donc aucune migration.
+  themeConfig Json @default("{}") @map("theme_config")
+
+  isPublished         Boolean @default(false) @map("is_published")
+  isPasswordProtected Boolean @default(false) @map("is_password_protected")
+  passwordHash        String? @map("password_hash")
+
+  // Suspension temporaire décidée par la modération (voir le panel des
+  // signalements). Tant que la date n'est pas passée, la page affiche un
+  // écran « page suspendue » et l'auteur ne peut ni la dépublier ni la
+  // republier — il reste libre de la modifier pour corriger le motif. La
+  // suspension expire d'elle-même à la date.
+  suspendedUntil   DateTime? @map("suspended_until")
+  suspensionReason String?  @map("suspension_reason")
+
+  // SEO / Open Graph. Si null, on retombe sur title/description.
+  seoTitle       String? @map("seo_title") @db.VarChar(120)
+  seoDescription String? @map("seo_description") @db.VarChar(300)
+  ogImageUrl     String? @map("og_image_url")
+
+  customDomain         String?   @unique @map("custom_domain")
+  customDomainVerified Boolean   @default(false) @map("custom_domain_verified")
+
+  // Compteurs dénormalisés : la page publique les affiche à chaque vue, on ne
+  // veut pas agréger la table analytics à chaque rendu.
+  // totalViews : toutes les visites. uniqueViews : un navigateur par fenêtre
+  // de 24 h — c'est ce que le compteur public affiche.
+  totalViews  Int @default(0) @map("total_views")
+  uniqueViews Int @default(0) @map("unique_views")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  links           Link[]
+  blocks          Block[]
+  mediaAssets     MediaAsset[]
+  analytics       Analytics[]
+  reports         Report[]
+  viewFingerprints ViewFingerprint[]
+  suspensions     Suspension[]
+
+  @@index([ownerId])
+  @@index([isPublished])
+  @@map("biolinks")
+}
+
+model Link {
+  id        String  @id @default(uuid()) @db.Uuid
+  biolinkId String  @map("biolink_id") @db.Uuid
+  label     String  @db.VarChar(80)
+  url       String  @db.VarChar(2048)
+  // Identifiant d'icône (ex: "discord", "instagram") résolu côté front,
+  // ou URL d'une icône uploadée.
+  icon      String? @db.VarChar(255)
+  position  Int
+  isEnabled Boolean @default(true) @map("is_enabled")
+  clicks    Int     @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  biolink Biolink @relation(fields: [biolinkId], references: [id], onDelete: Cascade)
+
+  @@index([biolinkId, position])
+  @@map("links")
+}
+
+// Block modulaire. `type` correspond à une clé du registry
+// (lib/blocks/registry.ts) et `config` à la forme zod déclarée par ce type.
+// Ajouter un type de block = ajouter un fichier au registry, sans migration.
+model Block {
+  id        String  @id @default(uuid()) @db.Uuid
+  biolinkId String  @map("biolink_id") @db.Uuid
+  type      String  @db.VarChar(48)
+  config    Json    @default("{}")
+  position  Int
+  isEnabled Boolean @default(true) @map("is_enabled")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  biolink Biolink @relation(fields: [biolinkId], references: [id], onDelete: Cascade)
+
+  @@index([biolinkId, position])
+  @@map("blocks")
+}
+
+model MediaAsset {
+  id String @id @default(uuid()) @db.Uuid
+  // Propriétaire : sert au quota de stockage et à la purge S3 à la
+  // suppression du compte, même si l'asset n'est rattaché à aucun biolink.
+  ownerId   String  @map("owner_id") @db.Uuid
+  biolinkId String? @map("biolink_id") @db.Uuid
+
+  type MediaType
+  // Clé de l'objet dans le bucket, seule source de vérité pour la
+  // suppression. `url` est dérivée (CDN) et peut changer.
+  key       String  @unique @db.VarChar(512)
+  url       String  @db.VarChar(1024)
+  mimeType  String  @map("mime_type") @db.VarChar(128)
+  sizeBytes Int     @map("size_bytes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  biolink Biolink? @relation(fields: [biolinkId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([biolinkId, type])
+  @@map("media_assets")
+}
+
+// ---------------------------------------------------------------------------
+// Statistiques
+// ---------------------------------------------------------------------------
+
+// Une ligne par biolink et par jour. `clicksByLink` et `referrers` sont en
+// Json pour éviter une table de faits par dimension.
+model Analytics {
+  id        String   @id @default(uuid()) @db.Uuid
+  biolinkId String   @map("biolink_id") @db.Uuid
+  date      DateTime @db.Date
+
+  views       Int @default(0)
+  uniqueViews Int @default(0) @map("unique_views")
+
+  // { "<linkId>": 12, "<linkId>": 3 }
+  clicksByLink Json @default("{}") @map("clicks_by_link")
+  // { "google.com": 40, "direct": 12 }
+  referrers    Json @default("{}")
+  // { "FR": 30, "US": 5 }
+  countries    Json @default("{}")
+  // { "mobile": 80, "desktop": 20 }
+  devices      Json @default("{}")
+
+  biolink Biolink @relation(fields: [biolinkId], references: [id], onDelete: Cascade)
+
+  @@unique([biolinkId, date])
+  @@index([date])
+  @@map("analytics")
+}
+
+// Empreinte d'un navigateur pour le comptage des vues uniques.
+//
+// Un identifiant aléatoire généré par le navigateur (localStorage) et hashé
+// côté serveur. La ligne vit 24 h : après, le même navigateur redevient un
+// visiteur unique. Cette table remplace la clé Redis : elle fonctionne même
+// sans Redis, sur n'importe quel déploiement.
+// ---------------------------------------------------------------------------
+// Emails système
+// ---------------------------------------------------------------------------
+
+// Une ligne par email que le système a tenté d'envoyer. C'est l'historique
+// de la messagerie : qui a reçu quoi, quand, et avec quel résultat. On ne
+// stocke jamais le contenu sensible (tokens, mots de passe) — uniquement le
+// sujet, le destinataire, le type et l'issue de l'envoi.
+//
+// Statuts : PENDING (l'envoi est parti), SENT (le fournisseur l'a accepté),
+// FAILED (erreur SMTP, avec le message d'erreur tronqué pour le debug).
+model EmailLog {
+  id     String     @id @default(uuid()) @db.Uuid
+  // Null si l'email part vers une adresse sans compte (jamais le cas
+  // aujourd'hui, mais le modèle le permet) ou si le compte a été supprimé
+  // depuis (on garde la trace : SetNull, pas Cascade).
+  userId String?    @map("user_id") @db.Uuid
+  // Adresse du destinataire, conservée même si le compte disparaît.
+  email  String     @db.VarChar(255)
+  type   EmailType
+  status EmailStatus @default(PENDING)
+
+  // Sujet de l'email : utile pour relire l'historique sans stocker le corps.
+  subject String? @db.VarChar(255)
+  // Identifiant fourni par le fournisseur SMTP une fois l'email accepté.
+  providerMessageId String? @map("provider_message_id") @db.VarChar(255)
+  // Message d'erreur tronqué quand l'envoi a échoué (debug sans fuite).
+  error   String?  @db.VarChar(1000)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("email_logs")
+}
+
+model ViewFingerprint {
+  id          String   @id @default(uuid()) @db.Uuid
+  biolinkId   String   @map("biolink_id") @db.Uuid
+  fingerprint String   @db.VarChar(64)
+  firstSeenAt DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at")
+
+  biolink Biolink @relation(fields: [biolinkId], references: [id], onDelete: Cascade)
+
+  @@unique([biolinkId, fingerprint])
+  @@index([lastSeenAt])
+  @@map("view_fingerprints")
+}
+
+// ---------------------------------------------------------------------------
+// Administration et modération
+// ---------------------------------------------------------------------------
+
+model AdminLog {
+  id      String @id @default(uuid()) @db.Uuid
+  adminId String @map("admin_id") @db.Uuid
+
+  // Ex: "user.ban", "biolink.delete", "slug.reserve".
+  action     String  @db.VarChar(64)
+  targetType String? @map("target_type") @db.VarChar(32)
+  targetId   String? @map("target_id")
+  metadata   Json    @default("{}")
+  ipAddress  String? @map("ip_address")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  admin User @relation("AdminLogActor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@map("admin_logs")
+}
+
+model ReservedSlug {
+  id     String   @id @default(uuid()) @db.Uuid
+  slug   String   @unique @db.VarChar(64)
+  tier   SlugTier @default(RESERVED)
+  reason String?  @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reserved_slugs")
+}
+
+/// Mot interdit dans un slug (blacklist) : si un slug contient ce mot,
+/// il est refusé à la création comme au changement.
+model SlugBlacklist {
+  id    String   @id @default(uuid()) @db.Uuid
+  word  String   @unique @db.VarChar(64)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("slug_blacklist")
+}
+
+model Report {
+  id         String  @id @default(uuid()) @db.Uuid
+  biolinkId  String  @map("biolink_id") @db.Uuid
+  // Null si le signalement est anonyme.
+  reporterId String? @map("reporter_id") @db.Uuid
+
+  reason      String       @db.VarChar(64)
+  details     String?      @db.VarChar(1000)
+  status      ReportStatus @default(PENDING)
+  resolvedBy  String?      @map("resolved_by") @db.Uuid
+  resolvedAt  DateTime?    @map("resolved_at")
+  resolutionNote String?   @map("resolution_note") @db.VarChar(1000)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  biolink  Biolink @relation(fields: [biolinkId], references: [id], onDelete: Cascade)
+  reporter User?   @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([biolinkId])
+  @@map("reports")
+}
+
+// Une ligne par suspension de page décidée par la modération. Historique
+// immuable : on ne modifie jamais une ligne, on en ajoute une nouvelle
+// (une resuspension crée une entrée supplémentaire). `until` NULL = durée
+// indéterminée (jamais utilisé aujourd'hui, prévu pour les suspensions
+// permanentes). `liftedAt` est posé si la suspension est levée avant terme.
+model Suspension {
+  id        String   @id @default(uuid()) @db.Uuid
+  biolinkId String   @map("biolink_id") @db.Uuid
+  // Admin ayant décidé la suspension.
+  adminId   String   @map("admin_id") @db.Uuid
+
+  reason    String    @db.VarChar(500)
+  startedAt DateTime  @default(now()) @map("started_at")
+  until     DateTime? @map("until")
+  liftedAt  DateTime? @map("lifted_at")
+
+  biolink Biolink @relation(fields: [biolinkId], references: [id], onDelete: Cascade)
+  admin   User    @relation("AdminSuspension", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([biolinkId, startedAt])
+  @@index([adminId])
+  @@map("suspensions")
+}

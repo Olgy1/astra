@@ -1,0 +1,91 @@
+/**
+ * Keyframes des effets de la page publique.
+ *
+ * Séparé de globals.css : ces animations n'ont de sens que sur `/[slug]`, et
+ * les charger sur les panels serait du poids mort. Elles sont référencées par
+ * les composants via des classes utilitaires arbitraires (`[animation:...]`).
+ *
+ * Toutes sont désactivées par la règle `prefers-reduced-motion` de
+ * globals.css, qui écrase la durée d'animation — inutile de la répéter ici.
+ */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes sparkle {
+  to { background-position: 200% center; }
+}
+
+@keyframes wave {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+}
+
+/**
+ * Bordure animée qui tourne autour de la carte (« border beam »).
+ *
+ * Un pseudo-élément derrière la carte porte un dégradé conique en rotation,
+ * dépassant légèrement pour former le liseré. Le masque le limite au pourtour.
+ */
+.astra-beam {
+  position: relative;
+}
+
+.astra-beam::before {
+  content: "";
+  position: absolute;
+  /* inset 0 (et non -1px) : la carte porte `overflow: hidden` pour couper le
+     fond aux coins arrondis, et l'anneau doit rester entièrement à
+     l'intérieur. Avec le même cadre que la carte, `border-radius: inherit`
+     épouse exactement ses coins — pas de décalage aux angles. */
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--beam-angle, 0deg),
+    transparent 0deg,
+    var(--card-beam-color) 60deg,
+    transparent 120deg
+  );
+  /* Masque : seul l'anneau de bordure reste visible, l'intérieur est découpé. */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: astra-beam-spin 4s linear infinite;
+}
+
+/* La propriété custom --beam-angle doit être déclarée pour être animable. */
+@property --beam-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes astra-beam-spin {
+  to { --beam-angle: 360deg; }
+}

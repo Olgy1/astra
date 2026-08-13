@@ -1,0 +1,11 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="astra" x1="512" y1="102" x2="512" y2="922" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B28BFF"/>
+      <stop offset="1" stop-color="#4A2FB5"/>
+    </linearGradient>
+  </defs>
+  <!-- Sparkle 4 branches (astroïde), fond transparent -->
+  <path d="M512 102 Q512 512 922 512 Q512 512 512 922 Q512 512 102 512 Q512 512 512 102 Z"
+        fill="url(#astra)"/>
+</svg>
