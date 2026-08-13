@@ -3,13 +3,17 @@
 import { useRef, useState } from "react";
 import type { MediaType } from "@prisma/client";
 import { useEditor } from "@/lib/editor/store";
+import { uploadFile, type UploadedAsset } from "@/lib/client-upload";
 
 /**
  * Bouton d'upload d'un média, avec aperçu et suppression.
  *
- * Passe par /api/media/upload (upload direct par le serveur), qui fonctionne
- * en stockage local comme en S3. Rend l'URL du fichier à `onUploaded`, à
- * charge de l'appelant de la brancher dans le thème (avatar, fond, curseur…).
+ * En production (stockage S3/Backblaze), le fichier part en PUT direct vers
+ * le stockage via une URL présignée — indispensable pour les vidéos de fond,
+ * que la limite de body de Vercel (4,5 Mo) interdit de faire transiter par
+ * le serveur. En local, on retombe sur l'upload par le serveur. Rend l'URL du
+ * fichier à `onUploaded`, à charge de l'appelant de la brancher dans le
+ * thème (avatar, fond, curseur…).
  */
 const ACCEPT: Record<MediaType, string> = {
   AVATAR: "image/jpeg,image/png,image/webp,image/gif",
@@ -36,8 +40,6 @@ const FEMININE: Partial<Record<MediaType, boolean>> = {
   FONT: true,
 };
 
-export type UploadedAsset = { id: string; type: MediaType; url: string; key: string };
-
 export function MediaUpload({
   type,
   currentUrl,
@@ -60,39 +62,17 @@ export function MediaUpload({
     setError(null);
     setProgress(0);
 
-    const form = new FormData();
-    form.append("file", file);
-    form.append("type", type);
-    form.append("biolinkId", biolink.id);
-
-    // XMLHttpRequest et non fetch : lui seul expose la progression d'upload,
-    // ce qui compte pour une vidéo de fond de plusieurs mégaoctets.
-    const result = await new Promise<{ ok: boolean; asset?: UploadedAsset; message?: string }>((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/media/upload");
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) setProgress(Math.round((event.loaded / event.total) * 100));
-      };
-
-      xhr.onload = () => {
-        try {
-          const body = JSON.parse(xhr.responseText);
-          if (body.ok) resolve({ ok: true, asset: body.data.asset });
-          else resolve({ ok: false, message: body.error?.message ?? "Échec de l'upload." });
-        } catch {
-          resolve({ ok: false, message: "Réponse illisible du serveur." });
-        }
-      };
-
-      xhr.onerror = () => resolve({ ok: false, message: "Connexion interrompue." });
-      xhr.send(form);
+    const result = await uploadFile({
+      file,
+      type,
+      biolinkId: biolink.id,
+      onProgress: setProgress,
     });
 
     setUploading(false);
 
-    if (!result.ok || !result.asset) {
-      setError(result.message ?? "Échec de l'upload.");
+    if (!result.ok) {
+      setError(result.message);
       return;
     }
 

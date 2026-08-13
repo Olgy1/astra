@@ -168,7 +168,9 @@ export const updateBlockSchema = z
 export const presignSchema = z.object({
   type: z.enum(["AVATAR", "BANNER", "AUDIO", "CURSOR", "BACKGROUND", "FONT"]),
   mimeType: z.string().min(1).max(128),
-  sizeBytes: z.number().int().positive().max(64 * 1024 * 1024),
+  // Le plafond générique suit la plus grande contrainte (fond vidéo 4K, 256 Mo) ;
+  // les limites par type sont vérifiées ensuite par `validateUpload`.
+  sizeBytes: z.number().int().positive().max(260 * 1024 * 1024),
   biolinkId: z.string().uuid().optional(),
 });
 

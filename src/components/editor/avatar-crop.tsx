@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useEditor } from "@/lib/editor/store";
 import { Button } from "@/components/ui/button";
+import { uploadFile } from "@/lib/client-upload";
 
 /**
  * Recadrage de l'avatar.
@@ -147,16 +148,14 @@ export function AvatarCropModal({
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
       if (!blob) throw new Error("génération impossible");
 
-      const form = new FormData();
-      form.append("file", new File([blob], "avatar.png", { type: "image/png" }));
-      form.append("type", "AVATAR");
-      form.append("biolinkId", biolink.id);
+      const result = await uploadFile({
+        file: new File([blob], "avatar.png", { type: "image/png" }),
+        type: "AVATAR",
+        biolinkId: biolink.id,
+      });
+      if (!result.ok) throw new Error(result.message);
 
-      const response = await fetch("/api/media/upload", { method: "POST", body: form });
-      const body = await response.json();
-      if (!body.ok) throw new Error(body.error?.message ?? "Échec de l'upload.");
-
-      onApplied(body.data.asset);
+      onApplied(result.asset);
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Échec du recadrage.");

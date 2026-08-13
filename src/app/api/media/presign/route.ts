@@ -20,10 +20,12 @@ import { presignSchema } from "@/lib/schemas/biolink";
 export const POST = withErrorHandling(async (request: Request) => {
   const user = await requireVerifiedUser();
 
-  // L'upload présigné exige S3. En stockage local, l'éditeur passe par
-  // /api/media/upload (upload direct par le serveur).
+  // L'upload présigné exige S3. En stockage local, on le signale au client
+  // (qui retombera sur POST /api/media/upload) plutôt que de renvoyer une
+  // erreur : le choix du flux appartient au client, pas au moment de la
+  // requête.
   if (!isS3Storage()) {
-    throw new ApiError("BAD_REQUEST", "Ce serveur utilise l'upload direct : POST /api/media/upload.");
+    return ok({ presigned: false as const });
   }
 
   // Par compte et non par IP : le quota protège notre facture S3, et un

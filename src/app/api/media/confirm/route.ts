@@ -1,4 +1,5 @@
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { prisma } from "@/lib/db";
 import { ApiError, ok, parseBody, withErrorHandling } from "@/lib/api";
 import { requireVerifiedUser } from "@/lib/auth/context";
@@ -39,21 +40,51 @@ export const POST = withErrorHandling(async (request: Request) => {
     throw new ApiError("BAD_REQUEST", "Ce serveur utilise l'upload direct, pas le flux présigné.");
   }
 
-  let head;
-
+  // Interrogation de l'objet via une URL HEAD présignée et un fetch brut,
+  // plutôt que HeadObjectCommand du SDK : Backblaze B2 renvoie ses erreurs
+  // (XML) sur les HEAD, que la désérialisation du SDK traduit en opaque
+  // `UnknownError`. Un fetch direct expose le vrai statut et les en-têtes.
+  let headStatus = 0;
+  let headContentLength = 0;
+  let headContentType = "";
   try {
-    head = await s3Client().send(
-      new HeadObjectCommand({ Bucket: serverEnv().S3_BUCKET!, Key: input.key })
+    const headUrl = await getSignedUrl(
+      s3Client(),
+      new HeadObjectCommand({ Bucket: serverEnv().S3_BUCKET!, Key: input.key }),
+      { expiresIn: 120 }
     );
+    const head = await fetch(headUrl, { method: "HEAD" });
+    headStatus = head.status;
+    headContentLength = Number(head.headers.get("content-length") ?? 0);
+    headContentType = head.headers.get("content-type") ?? "";
   } catch {
+    throw new ApiError(
+      "INTERNAL_ERROR",
+      "Impossible de vérifier le fichier sur le stockage. Réessayez dans un instant."
+    );
+  }
+
+  if (headStatus === 404) {
     throw new ApiError(
       "NOT_FOUND",
       "Ce fichier est introuvable sur le stockage. L'upload a peut-être échoué : réessayez."
     );
   }
 
-  const sizeBytes = head.ContentLength ?? 0;
-  const mimeType = head.ContentType ?? "application/octet-stream";
+  if (headStatus !== 200) {
+    // 403 sur Backblaze = quota de téléchargement (Class B) dépassé, la
+    // plupart du temps. C'est un plafond journalier du plan gratuit : les
+    // médias redeviennent lisibles après réinitialisation.
+    throw new ApiError(
+      "INTERNAL_ERROR",
+      headStatus === 403
+        ? "Le stockage refuse la lecture pour l'instant (quota de téléchargement B2 du jour dépassé). Les médias seront de nouveau accessibles après la réinitialisation quotidienne ; l'upload lui-même a réussi."
+        : `Le stockage n'a pas confirmé le fichier (HTTP ${headStatus}).`
+    );
+  }
+
+  const sizeBytes = headContentLength;
+  const mimeType = headContentType || "application/octet-stream";
   const constraint = MEDIA_CONSTRAINTS[input.type];
 
   // Deuxième contrôle, sur les valeurs réelles cette fois. La signature S3
