@@ -63,6 +63,7 @@ JavaScript : c'est ce qui rend un XSS incapable de voler la session.
 | `POST` | `/api/auth/password/forgot` | — | Envoie le lien de réinitialisation. Réponse identique que l'email existe ou non. | 3 / h / IP |
 | `POST` | `/api/auth/password/reset` | — | Consomme le token, change le mot de passe, révoque toutes les sessions. | 5 / h / IP |
 | `POST` | `/api/auth/password/change` | Session | Change le mot de passe (ancien exigé). | 5 / h / compte |
+| `POST` | `/api/auth/password/set` | Session | Définit un premier mot de passe (compte créé via Discord). Refusé si un mot de passe existe. | 5 / h / compte |
 | `GET` | `/api/auth/sessions` | Session | Liste des appareils connectés. | — |
 | `DELETE` | `/api/auth/sessions/:id` | Propriétaire | Déconnexion à distance d'un appareil. | — |
 | `DELETE` | `/api/auth/sessions` | Session | Déconnecte tous les autres appareils. | — |
@@ -80,7 +81,7 @@ JavaScript : c'est ce qui rend un XSS incapable de voler la session.
 | `GET` | `/api/biolinks` | Session | Biolinks de l'utilisateur + `quota` (max, utilisé, `canCreateMore`). Un admin est illimité, un membre est limité par son `pageLimit` (1 par défaut). |
 | `POST` | `/api/biolinks` | Vérifié | Crée un biolink. **`QUOTA_EXCEEDED` si le compte a atteint sa limite.** |
 | `GET` | `/api/biolinks/:id` | Propriétaire | Biolink complet : thème, liens, blocks, médias. |
-| `PATCH` | `/api/biolinks/:id` | Propriétaire | Met à jour titre, description, thème, SEO, NSFW, publication. |
+| `PATCH` | `/api/biolinks/:id` | Propriétaire | Met à jour titre, description, thème, SEO, publication ; réconcilie aussi les listes complètes de liens et de blocks (création, mise à jour, suppression, ordre). |
 | `DELETE` | `/api/biolinks/:id` | Propriétaire | Supprime le biolink et ses médias S3. |
 | `POST` | `/api/biolinks/:id/slug` | Propriétaire | Change le slug. Vérifie réservations et unicité. |
 | `POST` | `/api/biolinks/:id/password` | Propriétaire | Active ou change le mot de passe de la page. |

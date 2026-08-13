@@ -80,6 +80,14 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
+/**
+ * Définition d'un premier mot de passe (compte créé via Discord, sans mot
+ * de passe). Même politique que partout : `passwordSchema` fait foi.
+ */
+export const setPasswordSchema = z.object({
+  password: passwordSchema,
+});
+
 export const enableTwoFactorSchema = z.object({
   // Le secret est renvoyé par /2fa/setup et non stocké entre les deux appels :
   // un secret persisté avant confirmation laisserait des comptes avec une 2FA

@@ -26,6 +26,7 @@ const DISCORD_ERRORS: Record<string, string> = {
   exchange_failed: "Discord n'a pas répondu. Réessayez dans un instant.",
   discord_already_linked: "Ce compte Discord est déjà lié à un autre compte Astra.",
   account_banned: "Ce compte a été banni.",
+  account_suspended: "Ce compte est suspendu. Réessayez plus tard.",
   username_unavailable:
     "Impossible de créer un compte automatiquement. Inscrivez-vous avec une adresse email.",
   missing_params: "La connexion Discord a été interrompue.",

@@ -116,6 +116,9 @@ export async function GET(request: Request): Promise<NextResponse> {
       if (existing.status === "BANNED") {
         return redirectWithError("account_banned");
       }
+      if (existing.status === "SUSPENDED") {
+        return redirectWithError("account_suspended");
+      }
 
       await createSession(existing, { userAgent, ipAddress: ip });
       await prisma.user.update({
@@ -132,7 +135,54 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.redirect(`${appUrl()}/panel`);
     }
 
-    // --- Cas 3 : création d'un compte --------------------------------------
+    // --- Cas 3 : l'email Discord correspond à un compte existant -----------
+    // L'utilisateur s'est inscrit avec son email, puis se connecte avec
+    // Discord : on lie le compte Discord à ce compte au lieu d'en créer un
+    // doublon. Sans ce contrôle, la même personne finirait avec deux comptes
+    // (un par email, un par Discord) et des pages séparées.
+    if (profile.email) {
+      const byEmail = await prisma.user.findUnique({
+        where: { email: profile.email },
+        select: {
+          id: true,
+          username: true,
+          role: true,
+          status: true,
+          discordId: true,
+        },
+      });
+
+      if (byEmail) {
+        if (byEmail.status === "BANNED") {
+          return redirectWithError("account_banned");
+        }
+        if (byEmail.status === "SUSPENDED") {
+          return redirectWithError("account_suspended");
+        }
+
+        // Déjà lié à un autre Discord : la contrainte unique `discordId`
+        // l'empêcherait de toute façon ; autant répondre clairement.
+        if (byEmail.discordId) {
+          return redirectWithError("discord_already_linked");
+        }
+
+        await prisma.user.update({
+          where: { id: byEmail.id },
+          data: {
+            discordId: profile.id,
+            discordUsername: profile.globalName ?? profile.username,
+            discordAvatar: profile.avatarUrl,
+            lastLogin: new Date(),
+          },
+        });
+
+        await createSession(byEmail, { userAgent, ipAddress: ip });
+
+        return NextResponse.redirect(`${appUrl()}/panel`);
+      }
+    }
+
+    // --- Cas 4 : création d'un compte --------------------------------------
     const created = await createUserFromDiscord(profile);
 
     if (!created) {
@@ -141,10 +191,9 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     await createSession(created, { userAgent, ipAddress: ip });
 
-    // Le compte n'a ni mot de passe ni email : on l'envoie compléter son
-    // profil plutôt que sur le panel, sinon il découvrira le problème le jour
-    // où il voudra se connecter autrement.
-    return NextResponse.redirect(`${appUrl()}/panel/settings?discord=new_account`);
+    // Le compte n'a pas de mot de passe : on l'envoie immédiatement en créer
+    // un, pour qu'il ne dépende pas de Discord pour se connecter.
+    return NextResponse.redirect(`${appUrl()}/set-password`);
   } catch (caught) {
     console.error("[discord] callback en échec :", caught);
     return redirectWithError("unexpected");
@@ -166,6 +215,7 @@ async function createUserFromDiscord(profile: {
   username: string;
   globalName: string | null;
   avatarUrl: string | null;
+  email: string | null;
 }): Promise<CreatedUser | null> {
   const base = sanitizeDiscordUsername(profile.username);
 
@@ -181,13 +231,13 @@ async function createUserFromDiscord(profile: {
           // dérive explicitement : la colonne est NOT NULL et se déduire du
           // comportement d'une autre fonction serait fragile.
           usernameLower: username.toLowerCase(),
-          // Adresse de remplacement : la colonne est unique et NOT NULL, et
-          // Discord ne nous donne pas d'email vérifié avec le scope
-          // `identify`. L'utilisateur la remplacera dans ses paramètres, ce
-          // qui déclenchera une vraie vérification.
-          email: `discord_${profile.id}@placeholder.astra.is-a.dev`,
+          // Discord a vérifié l'adresse avant de nous la renvoyer : on peut
+          // la considérer comme confirmée d'emblée. Sans email (cas rare),
+          // on pose un placeholder que l'utilisateur remplacera dans ses
+          // paramètres — ce qui déclenchera une vraie vérification.
+          email: profile.email ?? `discord_${profile.id}@placeholder.astra.is-a.dev`,
           passwordHash: null,
-          emailVerified: false,
+          emailVerified: Boolean(profile.email),
           discordId: profile.id,
           discordUsername: profile.globalName ?? profile.username,
           discordAvatar: profile.avatarUrl,

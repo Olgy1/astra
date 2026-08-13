@@ -4,10 +4,12 @@ import { serverEnv } from "@/lib/env";
 /**
  * Client OAuth2 Discord.
  *
- * Portée demandée : `identify` seulement. Pas `email` : on ne veut pas d'une
- * adresse qu'on n'a pas vérifiée nous-mêmes et qui pourrait entrer en
- * collision avec un compte existant. Pas `guilds` : la présence temps réel
- * (étape 7) passe par un bot, pas par le token de l'utilisateur.
+ * Portées demandées : `identify` et `email`. `email` permet de relier un
+ * compte Discord à un compte Astra existant qui utilise la même adresse, ou
+ * de créer le compte avec l'email réel au lieu d'un placeholder. Discord ne
+ * renvoie l'email que si elle est vérifiée de son côté ; on ne la garde que
+ * dans ce cas. Pas `guilds` : la présence temps réel (étape 7) passe par un
+ * bot, pas par le token de l'utilisateur.
  */
 
 const DISCORD_API = "https://discord.com/api/v10";
@@ -39,7 +41,7 @@ export function authorizeUrl(state: string): string {
     client_id: serverEnv().DISCORD_CLIENT_ID!,
     redirect_uri: redirectUri(),
     response_type: "code",
-    scope: "identify",
+    scope: "identify email",
     state,
     // Force l'écran de consentement : sans ça, Discord réutilise
     // silencieusement une autorisation précédente, et l'utilisateur qui
@@ -55,6 +57,8 @@ export type DiscordProfile = {
   username: string;
   globalName: string | null;
   avatarUrl: string | null;
+  /** Email vérifié par Discord, ou null si non fournie. */
+  email: string | null;
 };
 
 type TokenResponse = { access_token?: string; error?: string };
@@ -64,6 +68,8 @@ type UserResponse = {
   username: string;
   global_name?: string | null;
   avatar?: string | null;
+  email?: string | null;
+  verified?: boolean;
 };
 
 /**
@@ -116,6 +122,9 @@ export async function exchangeCodeForProfile(
       avatarUrl: profile.avatar
         ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png?size=256`
         : null,
+      // Discord ne fournit l'email qu'après vérification de son côté : on
+      // ne la conserve que si `verified` le confirme, jamais sinon.
+      email: profile.verified === true && profile.email ? profile.email : null,
     };
   } catch (error) {
     console.error("[discord] OAuth indisponible :", error);
