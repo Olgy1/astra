@@ -128,9 +128,17 @@ async function serveFromS3(
   let result;
   try {
     result = await s3Client().send(command);
-  } catch {
+  } catch (error) {
     // Absent ou accès refusé : même réponse côté client, on ne distingue pas.
-    return new Response("Not found", { status: 404 });
+    // Le header x-media-error est un outil de diagnostic (à retirer une fois
+    // la config S3 stable).
+    console.error("[media] erreur S3 :", error);
+    return new Response("Not found", {
+      status: 404,
+      headers: {
+        "x-media-error": error instanceof Error ? error.message.slice(0, 200) : String(error),
+      },
+    });
   }
 
   if (!result.Body) {
