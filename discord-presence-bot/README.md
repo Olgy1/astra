@@ -78,8 +78,8 @@ fonctionnement continu.
 1. **render.com** → **Sign up** (email ou compte Google — pas de carte).
 2. Dashboard → **New +** → **Blueprint** → connecte ton **GitHub** (autorise
    Render) → choisis le dépôt **astra** → **Apply Blueprint**.
-   Render lit `discord-presence-bot/render.yaml` et crée le service
-   **astra-presence** tout seul.
+   Render lit le fichier `render.yaml` à la racine du dépôt et crée le
+   service **astra-presence** tout seul.
 3. Va sur le service **astra-presence** → **Environment** → **Add Environment
    Variable** → `DISCORD_BOT_TOKEN` = ton token → **Save Changes**.
 4. **Manual Deploy** → **Deploy latest commit** (premier déploiement).
