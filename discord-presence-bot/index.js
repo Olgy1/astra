@@ -37,7 +37,7 @@ const GATEWAY_VERSION = 10;
 const INTENTS = (1 << 0) | (1 << 1) | (1 << 8);
 
 // ---------------------------------------------------------------------------
-// État en mémoire : discordId → présence normalisée (format Lanyard)
+// État en mémoire : discordId → { presence, username }
 // ---------------------------------------------------------------------------
 const presenceByUser = new Map();
 
@@ -92,6 +92,13 @@ let shuttingDown = false;
 
 function log(...args) {
   console.log(new Date().toISOString(), ...args);
+}
+
+function logTrackedUsers() {
+  const users = [...presenceByUser.entries()].map(
+    ([id, entry]) => `${entry.username ?? "?"} (${id})`
+  );
+  log(`présences suivies (${users.length}) : ${users.join(", ") || "aucune"}`);
 }
 
 async function getGatewayUrl() {
@@ -210,15 +217,22 @@ function connectGateway(url) {
         } else if (event === "GUILD_MEMBERS_CHUNK") {
           for (const member of message.d.members || []) {
             if (member.presence) {
-              presenceByUser.set(member.user.id, normalizePresence(member.presence));
+              presenceByUser.set(member.user.id, {
+                presence: normalizePresence(member.presence),
+                username: member.user.username ?? null,
+              });
             }
           }
+          logTrackedUsers();
         } else if (event === "PRESENCE_UPDATE") {
           if (message.d.user?.id) {
             if (message.d.status === "offline" && !message.d.activities?.length) {
               presenceByUser.delete(message.d.user.id);
             } else {
-              presenceByUser.set(message.d.user.id, normalizePresence(message.d));
+              presenceByUser.set(message.d.user.id, {
+                presence: normalizePresence(message.d),
+                username: message.d.user.username ?? null,
+              });
             }
           }
         }
@@ -271,6 +285,11 @@ const server = http.createServer((request, response) => {
       ok: true,
       connected: gatewaySocket?.readyState === WebSocket.OPEN,
       tracked: presenceByUser.size,
+      users: [...presenceByUser.entries()].map(([id, entry]) => ({
+        id,
+        username: entry.username,
+        status: entry.presence.discord_status,
+      })),
     });
     return;
   }
@@ -290,8 +309,8 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  const presence = presenceByUser.get(match[1]);
-  if (!presence) {
+  const entry = presenceByUser.get(match[1]);
+  if (!entry) {
     sendJson(response, 200, {
       success: false,
       error: "Cet utilisateur n'est pas suivi : le bot et lui doivent partager un serveur Discord.",
@@ -299,7 +318,7 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  sendJson(response, 200, { success: true, data: presence });
+  sendJson(response, 200, { success: true, data: entry.presence });
 });
 
 // ---------------------------------------------------------------------------
