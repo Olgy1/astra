@@ -89,3 +89,28 @@
 @keyframes astra-beam-spin {
   to { --beam-angle: 360deg; }
 }
+
+/**
+ * Qualité réduite sur les machines modestes.
+ *
+ * La classe `astra-low-end` est posée par AdaptiveQuality sur <html> quand le
+ * navigateur signale peu de cœurs ou de mémoire. On retire les halos et
+ * ombres les plus coûteux à peindre — des flous répétés à chaque rafraîchis-
+ * sement, inutilement lourds sur des GPU faibles. Le flou de carte et celui
+ * de l'écran d'entrée sont plafonnés par le même composant (en JavaScript,
+ * pour respecter un flou réglé à 0 par l'utilisateur).
+ *
+ * `box-shadow: var(--card-shadow), var(--card-glow)` devient « none, none »,
+ * une liste invalide qui retombe proprement sur aucune ombre.
+ *
+ * La règle vise `.astra-page` et non `<html>` : les variables sont déclarées
+ * en style inline sur `.astra-page`, et une déclaration parente ne peut pas
+ * l'emporter sur une déclaration propre pour l'héritage — seule une règle
+ * visant l'élément lui-même (avec `!important`) bat l'inline.
+ */
+.astra-low-end .astra-page {
+  --card-shadow: none !important;
+  --card-glow: none !important;
+  --page-text-glow: none !important;
+  --avatar-glow: none !important;
+}

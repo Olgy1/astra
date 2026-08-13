@@ -44,7 +44,7 @@ export function EntranceScreen({
           <button
             type="button"
             onClick={() => setEntered(true)}
-            className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/40 text-[var(--page-text)] transition-opacity"
+            className="astra-entrance-btn fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/40 text-[var(--page-text)] transition-opacity"
             style={{ backdropFilter: `blur(${theme.entranceScreen.blurAmount}px)` }}
           >
             <span

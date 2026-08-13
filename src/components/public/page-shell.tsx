@@ -11,6 +11,7 @@ import { PageAudio, PreviewAutoplay } from "@/components/public/page-audio";
 import { CustomCursor } from "@/components/public/custom-cursor";
 import { TabTitle } from "@/components/public/tab-title";
 import { MediaLock } from "@/components/public/media-lock";
+import { AdaptiveQuality } from "@/components/public/adaptive-quality";
 import { ReportButton } from "@/components/public/report-button";
 import { BlockRenderer } from "@/components/blocks/renderer";
 import { Logo } from "@/components/ui/logo";
@@ -141,6 +142,9 @@ export function PageShell({ page, preview = false }: { page: PublicPage; preview
           de page. Le curseur, lui, est rendu par un composant qui suit la
           souris (voir custom-cursor.tsx). */}
       {fontFace && <style dangerouslySetInnerHTML={{ __html: fontFace }} />}
+
+      {/* Plafonne les effets lourds sur les machines modestes (aucun rendu). */}
+      <AdaptiveQuality />
 
       <PageBackground background={theme.background} />
       <Particles effects={theme.effects} />
