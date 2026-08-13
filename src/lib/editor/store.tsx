@@ -150,6 +150,15 @@ export function EditorProvider({
     if (current.seoTitle !== previous.seoTitle) body.seoTitle = current.seoTitle;
     if (current.seoDescription !== previous.seoDescription) body.seoDescription = current.seoDescription;
     if (current.ogImageUrl !== previous.ogImageUrl) body.ogImageUrl = current.ogImageUrl;
+    // Liens et blocks : listes complètes. La comparaison par sérialisation
+    // détecte aussi les réordonnancements, car l'ordre du tableau compte. Le
+    // serveur réconcilie avec la base dans une transaction.
+    if (JSON.stringify(current.links) !== JSON.stringify(previous.links)) {
+      body.links = current.links;
+    }
+    if (JSON.stringify(current.blocks) !== JSON.stringify(previous.blocks)) {
+      body.blocks = current.blocks;
+    }
 
     if (Object.keys(body).length === 0) {
       setSaveState("saved");
@@ -214,15 +223,23 @@ export function EditorProvider({
     [markDirty]
   );
 
-  const setLinks = useCallback((links: EditorLink[]) => {
-    recordHistory();
-    commit({ ...biolinkRef.current, links });
-  }, []);
+  const setLinks = useCallback(
+    (links: EditorLink[]) => {
+      recordHistory();
+      commit({ ...biolinkRef.current, links });
+      markDirty();
+    },
+    [markDirty]
+  );
 
-  const setBlocks = useCallback((blocks: EditorBlock[]) => {
-    recordHistory();
-    commit({ ...biolinkRef.current, blocks });
-  }, []);
+  const setBlocks = useCallback(
+    (blocks: EditorBlock[]) => {
+      recordHistory();
+      commit({ ...biolinkRef.current, blocks });
+      markDirty();
+    },
+    [markDirty]
+  );
 
   const setMedia = useCallback((media: EditorBiolink["media"]) => {
     recordHistory();

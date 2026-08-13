@@ -35,6 +35,34 @@ export const createBiolinkSchema = z.object({
   description: z.string().trim().max(500).optional(),
 });
 
+/**
+ * Lien complet envoyé par l'éditeur à la sauvegarde (bouton Enregistrer).
+ *
+ * L'éditeur construit la liste localement (avec un id client) et l'envoie
+ * en bloc ; le serveur la réconcilie avec la base (création, mise à jour,
+ * suppression, ordre) dans une transaction.
+ */
+export const linkInputSchema = z.object({
+  id: z.string().uuid("Identifiant invalide."),
+  label: z.string().trim().min(1, "Le libellé est requis.").max(80),
+  url: safeUrlSchema,
+  icon: z.string().trim().max(255).nullable().optional(),
+  isEnabled: z.boolean(),
+  position: z.number().int().min(0),
+});
+
+/**
+ * Block complet envoyé par l'éditeur à la sauvegarde. La config est validée
+ * contre le schéma de son type côté serveur (`validateBlockConfig`).
+ */
+export const blockInputSchema = z.object({
+  id: z.string().uuid("Identifiant invalide."),
+  type: z.string().min(1).max(48),
+  config: z.unknown().optional(),
+  isEnabled: z.boolean(),
+  position: z.number().int().min(0),
+});
+
 export const updateBiolinkSchema = z
   .object({
     title: z.string().trim().max(120).nullable().optional(),
@@ -44,6 +72,11 @@ export const updateBiolinkSchema = z
     seoTitle: z.string().trim().max(120).nullable().optional(),
     seoDescription: z.string().trim().max(300).nullable().optional(),
     ogImageUrl: safeUrlSchema.nullable().optional(),
+    // Listes complètes : envoyées seulement quand elles ont changé. Le serveur
+    // réconcilie (création / mise à jour / suppression / ordre). Les clics ne
+    // sont pas acceptés ici : c'est la route de comptage qui les incrémente.
+    links: z.array(linkInputSchema).max(100).optional(),
+    blocks: z.array(blockInputSchema).max(50).optional(),
   })
   // Un PATCH vide est presque toujours un bug côté client. Le refuser
   // explicitement vaut mieux que renvoyer 200 sans rien avoir fait.

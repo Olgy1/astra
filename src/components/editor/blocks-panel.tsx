@@ -35,36 +35,32 @@ export function BlocksPanel() {
     });
   }, []);
 
-  const drag = useDragOrder(biolink.blocks, async (ordered) => {
+  const drag = useDragOrder(biolink.blocks, (ordered) => {
     setBlocks(ordered.map((block, index) => ({ ...block, position: index })));
-    const result = await api.put(`/api/biolinks/${biolink.id}/blocks/order`, {
-      ids: ordered.map((block) => block.id),
-    });
-    if (!result.ok) await reload();
   });
 
-  async function reload() {
-    const result = await api.get<{ blocks: EditorBlock[] }>(`/api/biolinks/${biolink.id}/blocks`);
-    if (result.ok) setBlocks(result.data.blocks);
+  function handleAdd(type: string) {
+    // Création locale (id généré par le navigateur) : le block ne part en
+    // base qu'au clic sur Enregistrer, qui le validera côté serveur (type,
+    // limite d'instances, config). La config vide est complétée par les
+    // défauts du schéma à la sauvegarde.
+    const block: EditorBlock = {
+      id: crypto.randomUUID(),
+      type,
+      config: {},
+      position: biolink.blocks.length,
+      isEnabled: true,
+    };
+    setBlocks([...biolink.blocks, block]);
+    setPicking(false);
   }
 
-  async function handleAdd(type: string) {
-    const result = await api.post<{ block: EditorBlock }>(`/api/biolinks/${biolink.id}/blocks`, { type });
-    if (result.ok) {
-      setBlocks([...biolink.blocks, result.data.block]);
-      setPicking(false);
-    }
-  }
-
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     setBlocks(biolink.blocks.filter((block) => block.id !== id));
-    const result = await api.delete(`/api/biolinks/${biolink.id}/blocks/${id}`);
-    if (!result.ok) await reload();
   }
 
-  async function handleToggle(id: string, isEnabled: boolean) {
+  function handleToggle(id: string, isEnabled: boolean) {
     setBlocks(biolink.blocks.map((block) => (block.id === id ? { ...block, isEnabled } : block)));
-    await api.patch(`/api/biolinks/${biolink.id}/blocks/${id}`, { isEnabled });
   }
 
   // Compte des instances par type, pour griser dans le catalogue ceux qui ont

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@/lib/api-client";
 import { useEditor, type EditorLink } from "@/lib/editor/store";
 import { useDragOrder } from "@/lib/editor/use-drag-order";
 import { Button } from "@/components/ui/button";
@@ -10,59 +9,49 @@ import { Input } from "@/components/ui/input";
 /**
  * Gestion des liens : ajout, édition, suppression, réordonnancement.
  *
- * Chaque action est optimiste — l'interface se met à jour d'abord, la requête
- * suit. En cas d'échec, on recharge depuis le serveur plutôt que de laisser
- * l'affichage mentir sur l'état réel.
+ * Tout est local : les modifications vivent dans le store de l'éditeur et ne
+ * partent en base qu'au clic sur Enregistrer (ou lors d'une publication),
+ * comme le thème et les réglages. Chaque action met l'interface à jour
+ * immédiatement ; l'état « Modifié » reflète le travail en attente.
  */
 export function LinksPanel() {
   const { biolink, setLinks } = useEditor();
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
-  const drag = useDragOrder(biolink.links, async (ordered) => {
+  const drag = useDragOrder(biolink.links, (ordered) => {
     setLinks(ordered.map((link, index) => ({ ...link, position: index })));
-
-    const result = await api.put(`/api/biolinks/${biolink.id}/links/order`, {
-      ids: ordered.map((link) => link.id),
-    });
-
-    // L'ordre a été refusé (course, lien supprimé ailleurs) : on resynchronise.
-    if (!result.ok) await reload();
   });
 
-  async function reload() {
-    const result = await api.get<{ links: EditorLink[] }>(`/api/biolinks/${biolink.id}/links`);
-    if (result.ok) setLinks(result.data.links);
-  }
-
-  async function handleAdd(event: React.FormEvent) {
+  function handleAdd(event: React.FormEvent) {
     event.preventDefault();
-    setError(null);
 
-    const result = await api.post<{ link: EditorLink }>(`/api/biolinks/${biolink.id}/links`, { label, url });
+    // Le lien est créé localement avec un id généré par le navigateur ; il ne
+    // sera envoyé au serveur qu'à la sauvegarde, qui gardera cet id (la
+    // réconciliation est idempotente).
+    const link: EditorLink = {
+      id: crypto.randomUUID(),
+      label,
+      url,
+      icon: null,
+      position: biolink.links.length,
+      isEnabled: true,
+      clicks: 0,
+    };
 
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
-
-    setLinks([...biolink.links, result.data.link]);
+    setLinks([...biolink.links, link]);
     setLabel("");
     setUrl("");
     setAdding(false);
   }
 
-  async function handleUpdate(id: string, patch: Partial<EditorLink>) {
+  function handleUpdate(id: string, patch: Partial<EditorLink>) {
     setLinks(biolink.links.map((link) => (link.id === id ? { ...link, ...patch } : link)));
-    await api.patch(`/api/biolinks/${biolink.id}/links/${id}`, patch);
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     setLinks(biolink.links.filter((link) => link.id !== id));
-    const result = await api.delete(`/api/biolinks/${biolink.id}/links/${id}`);
-    if (!result.ok) await reload();
   }
 
   return (
@@ -131,10 +120,10 @@ export function LinksPanel() {
       {adding ? (
         <form onSubmit={handleAdd} className="flex flex-col gap-2 rounded-xl border border-border-subtle bg-surface-1 p-3">
           <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} autoFocus required />
-          <Input label="URL" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" errors={error ? [error] : undefined} required />
+          <Input label="URL" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" required />
           <div className="flex gap-2">
             <Button type="submit" size="sm">Ajouter</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => { setAdding(false); setError(null); }}>Annuler</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setAdding(false)}>Annuler</Button>
           </div>
         </form>
       ) : (

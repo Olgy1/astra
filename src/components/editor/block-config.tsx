@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { api } from "@/lib/api-client";
 import { useEditor, type EditorBlock } from "@/lib/editor/store";
 import {
   SelectControl,
@@ -20,8 +18,9 @@ import { fontChoices } from "@/lib/theme/fonts";
  * Les blocks ne servaient qu'à être ajoutés/supprimés : leur contenu (titre,
  * bio, texte, réseaux…) n'avait aucune interface. Ce composant couvre chaque
  * type du registry avec les réglages que son schéma expose. Chaque
- * modification est optimiste : l'aperçu (store) se met à jour d'abord, la
- * sauvegarde part en arrière-plan, validée côté serveur par le schéma du type.
+ * modification est optimiste : l'aperçu (store) se met à jour d'abord, et la
+ * sauvegarde n'a lieu qu'au clic sur Enregistrer — validée côté serveur par
+ * le schéma du type (`validateBlockConfig`).
  *
  * `config` est typé lâchement ici : le vrai contrat est le schéma zod du type,
  * appliqué à l'écriture par l'API. Le parse au chargement garantit que les
@@ -33,22 +32,9 @@ export function BlockConfigForm({ block }: { block: EditorBlock }) {
   const { biolink, setBlocks } = useEditor();
   const config = (block.config ?? {}) as Config;
 
-  const [error, setError] = useState<string | null>(null);
-
   function update(patch: Config) {
     const next = { ...config, ...patch };
     setBlocks(biolink.blocks.map((b) => (b.id === block.id ? { ...b, config: next } : b)));
-
-    setError(null);
-    api
-      .patch(`/api/biolinks/${biolink.id}/blocks/${block.id}`, { config: next })
-      .then((result) => {
-        if (!result.ok) {
-          setError(result.message);
-          // La config a été refusée (validation) : on rechargera au prochain
-          // rendu complet. On ne casse pas la page pour autant.
-        }
-      });
   }
 
   function setField(key: string, value: unknown) {
@@ -60,8 +46,6 @@ export function BlockConfigForm({ block }: { block: EditorBlock }) {
       <p className="text-xs font-medium uppercase tracking-wider text-content-muted">
         Réglages du block
       </p>
-
-      {error && <p className="text-xs text-danger">{error}</p>}
 
       {block.type === "avatar" && <AvatarForm config={config} setField={setField} />}
       {block.type === "badges" && <BadgesForm config={config} setField={setField} />}
