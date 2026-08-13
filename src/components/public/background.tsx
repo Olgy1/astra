@@ -8,6 +8,7 @@ import {
   backgroundStyle,
 } from "@/lib/theme/css";
 import { onEntered } from "@/components/public/entered";
+import { getSoundMuted } from "@/components/public/sound-state";
 
 /**
  * Calque d'arrière-plan : couleur, dégradé, image ou vidéo.
@@ -37,7 +38,11 @@ export function PageBackground({ background }: { background: Background }) {
 
     function start() {
       if (!video) return;
-      video.muted = !wantsSound;
+      // Le mutage demandé par le visiteur (bouton de volume) prime sur le
+      // réglage du thème : quand il a coupé le son, un retour d'onglet (qui
+      // redémarre la vidéo) ne doit pas le relancer.
+      const mutedByVisitor = getSoundMuted();
+      video.muted = mutedByVisitor || !wantsSound;
       video.volume = wantsSound ? videoVolume : 1;
       video.play().catch(() => {
         // Le navigateur a refusé le son (pas encore d'interaction) : on

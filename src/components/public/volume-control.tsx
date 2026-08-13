@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ThemeConfig } from "@/lib/schemas/theme";
 import { onEntered } from "@/components/public/entered";
+import { setSoundMuted } from "@/components/public/sound-state";
 
 /**
  * Contrôle de volume flottant, en haut à gauche de la page.
@@ -38,6 +39,10 @@ export function VolumeControl({
 
   /** Applique l'état à tous les éléments audio/vidéo de la page. */
   function apply(nextMuted: boolean, nextVolume: number) {
+    // C'est la seule écriture de l'état partagé : les sources (vidéo de fond
+    // notamment) le consultent quand elles redémarrent, pour ne pas relancer
+    // un son que le visiteur a coupé.
+    setSoundMuted(nextMuted);
     const scope = rootRef.current?.closest(".astra-page") ?? document;
     scope.querySelectorAll<HTMLMediaElement>("audio, video").forEach((el) => {
       // On ne touche qu'aux médias porteurs de son : une vidéo de fond sans
@@ -62,6 +67,18 @@ export function VolumeControl({
     // ré-attacher l'abonnement à chaque cran de volume.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Retour au premier plan : la vidéo de fond (et éventuellement d'autres
+  // mécanismes) relance les médias et peut avoir réinitialisé leur `muted`.
+  // On ré-applique l'état voulu par le visiteur pour que le son reste coupé
+  // s'il l'avait coupé — l'icône affichée n'est pas un simple ornement.
+  useEffect(() => {
+    function onVisibility() {
+      if (!document.hidden) apply(muted, volume);
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [muted, volume]);
 
   if (!hasMusic && !hasVideoSound) return null;
 
