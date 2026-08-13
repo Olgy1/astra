@@ -64,42 +64,59 @@ ton profil → **Copier l'ID utilisateur**.
 Mac est souvent allumé, tu peux t'arrêter là (le bot tourne tant que le terminal
 est ouvert). Sinon, continue pour l'héberger gratuitement.
 
-## 4. Héberger gratuitement (recommandé : Fly.io)
+## 4. Héberger gratuitement et 24/7 (Render, sans carte)
 
-Fly.io offre une **allocation gratuite** (3 machines 256 MB qui ne s'endorment
-pas — parfait pour un bot qui doit rester connecté). Il faut une carte bancaire
-pour créer le compte (aucun débit ; uniquement pour vérifier l'identité).
+Render offre des **instances gratuites** (inscription par email, **aucune carte
+bancaire**). Leur seule particularité : elles s'endorment après 15 min sans
+trafic entrant. On la contourne avec un **ping de garde gratuit** (UptimeRobot,
+5 min d'intervalle) : l'instance ne dort jamais, le bot reste connecté au
+gateway 24/7, et les 750 h gratuites de Render couvrent exactement un mois de
+fonctionnement continu.
+
+### 4.1 Créer le service (dashbord Render, ~5 min)
+
+1. **render.com** → **Sign up** (email ou compte Google — pas de carte).
+2. Dashboard → **New +** → **Blueprint** → connecte ton **GitHub** (autorise
+   Render) → choisis le dépôt **astra** → **Apply Blueprint**.
+   Render lit `discord-presence-bot/render.yaml` et crée le service
+   **astra-presence** tout seul.
+3. Va sur le service **astra-presence** → **Environment** → **Add Environment
+   Variable** → `DISCORD_BOT_TOKEN` = ton token → **Save Changes**.
+4. **Manual Deploy** → **Deploy latest commit** (premier déploiement).
+5. L'URL du service apparaît dans le dashboard :
+   `https://astra-presence.onrender.com` → vérifie avec :
+   `curl https://astra-presence.onrender.com/health` → `{ ok: true }`.
+
+### 4.2 Garder l'instance éveillée (ping gratuit, 3 min)
+
+1. **uptimerobot.com** → **Sign up** (email, pas de carte).
+2. **Add New Monitor** → type **HTTP(s)** → URL :
+   `https://astra-presence.onrender.com/health` → interval **5 minutes** →
+   **Create Monitor**.
+
+   Chaque check est une visite qui empêche Render de s'endormir → le bot reste
+   connecté en permanence. Bonus : UptimeRobot t'alerte par email si le bot
+   tombe.
+
+### 4.3 Alternative sans ping : Fly.io (carte demandée à l'inscription)
+
+Fly.io offre une allocation gratuite (machines qui ne dorment jamais, aucun ping
+nécessaire), mais demande une carte bancaire à l'inscription (aucun débit).
 
 ```bash
-# 1. Installe flyctl (macOS) :
 brew install flyctl
-
-# 2. Connecte-toi et crée l'application (accepte les fichiers existants) :
 cd discord-presence-bot
 fly launch --name astra-presence --no-deploy
-
-# 3. Dépose le token du bot :
 fly secrets set DISCORD_BOT_TOKEN="ton_token"
-
-# 4. Déploie :
 fly deploy
 ```
-
-Ton API est alors à l'adresse **https://astra-presence.fly.dev**.
-Vérifie : `curl https://astra-presence.fly.dev/health` → `{ ok: true }`.
-
-> **Alternative — Render (gratuit)** : crée un *Web Service* sur
-> render.com avec ce dépôt (Docker), variable `DISCORD_BOT_TOKEN`.
-> ⚠️ Les instances gratuites de Render s'endorment après 15 min d'inactivité ;
-> la présence sera alors « hors ligne » jusqu'à la prochaine visite. Fly.io est
-> nettement mieux pour ce cas précis.
 
 ## 5. Brancher Astra dessus (2 min)
 
 Dans **Vercel → Settings → Environment Variables**, ajoute :
 
 ```
-DISCORD_PRESENCE_URL = https://astra-presence.fly.dev
+DISCORD_PRESENCE_URL = https://astra-presence.onrender.com
 ```
 
 (coché pour **Production**), puis **Redeploy**.

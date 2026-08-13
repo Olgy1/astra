@@ -1,0 +1,25 @@
+# Blueprint Render — déploiement gratuit du bot de présence.
+#
+# Dans le dashboard Render : « New + » → « Blueprint » → connecter GitHub →
+# choisir le dépôt Olgy1/astra → « Apply Blueprint ». Render crée le service
+# « astra-presence » à partir de ce fichier.
+#
+# ⚠️ Les instances gratuites de Render s'endorment après 15 min sans trafic
+# entrant. Pour garder le bot connecté au gateway en permanence, un service de
+# monitoring gratuit (ex. UptimeRobot, vérification toutes les 5 min) doit
+# interroger https://astra-presence.onrender.com/health — voir README.md.
+services:
+  - type: web
+    name: astra-presence
+    runtime: docker
+    rootDir: discord-presence-bot
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # À renseigner dans Render après création : Environment → Add
+      # Environment Variable → DISCORD_BOT_TOKEN (token du bot Discord).
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: PORT
+        value: "8080"
