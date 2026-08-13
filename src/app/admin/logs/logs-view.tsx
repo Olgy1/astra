@@ -25,6 +25,7 @@ const ACTION_LABELS: Record<string, string> = {
   "user.ban": "Bannissement",
   "user.suspend": "Suspension",
   "user.unban": "Levée de sanction",
+  "user.delete": "Suppression de compte",
   "user.reset_password": "Reset de mot de passe",
   "user.revoke_sessions": "Révocation de sessions",
   "biolink.create_for": "Création de page (tiers)",

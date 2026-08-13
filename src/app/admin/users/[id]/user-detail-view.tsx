@@ -237,6 +237,28 @@ export function UserDetailView({ userId }: { userId: string }) {
     load();
   };
 
+  const deleteUser = async () => {
+    if (!user) return;
+    if (
+      !window.confirm(
+        `Supprimer définitivement le compte « ${user.username} » ?\n\n` +
+          `Ses ${user.biolinks.length} page(s), ses médias et tout son historique seront effacés. Action irréversible.`
+      )
+    )
+      return;
+    setBusy("delete-user");
+    setError(null);
+    setNotice(null);
+    const result = await api.delete<{ message?: string }>(`/api/admin/users/${user.id}`);
+    setBusy(null);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    // Le compte n'existe plus : retour à la liste.
+    window.location.href = "/admin/users";
+  };
+
   if (error) {
     return (
       <div className="flex flex-col gap-3">
@@ -316,6 +338,14 @@ export function UserDetailView({ userId }: { userId: string }) {
               className="rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-3 disabled:opacity-50"
             >
               Déconnecter tous ses appareils
+            </button>
+            <button
+              type="button"
+              disabled={busy === "delete-user"}
+              onClick={deleteUser}
+              className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/15 disabled:opacity-50"
+            >
+              Supprimer le compte
             </button>
           </div>
         </div>

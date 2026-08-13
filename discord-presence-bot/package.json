@@ -1,0 +1,16 @@
+{
+  "name": "astra-discord-presence-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bot Discord minimal qui expose la présence (en ligne/occupé/AFK, activité, Spotify) d'utilisateurs partageant un serveur avec lui, via une petite API HTTP compatible Lanyard.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

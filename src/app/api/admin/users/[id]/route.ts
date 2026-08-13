@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
-import { ApiError, ok, withErrorHandling } from "@/lib/api";
+import { ApiError, clientIp, ok, withErrorHandling } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth/context";
+import { writeAdminLog } from "@/lib/admin/log";
+import { invalidatePageCache } from "@/lib/redis";
+import { deleteStoredObjects } from "@/lib/storage";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -104,4 +107,65 @@ export const GET = withErrorHandling(async (_request: Request, context: Context)
   });
 
   return ok({ user: { ...user, reportsAgainst, suspensions } });
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ *
+ * Supprime définitivement le compte (RGPD) : médias purgés du stockage,
+ * pages, liens, blocks, sessions, signalements et historique supprimés en
+ * cascade. Irréversible — l'interface demande une confirmation explicite.
+ */
+export const DELETE = withErrorHandling(async (request: Request, context: Context) => {
+  const admin = await requireAdmin();
+  const { id } = await context.params;
+
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      username: true,
+      status: true,
+      biolinks: { select: { slug: true } },
+    },
+  });
+
+  if (!target) throw new ApiError("NOT_FOUND", "Cet utilisateur est introuvable.");
+  if (target.id === admin.id) {
+    throw new ApiError("BAD_REQUEST", "Vous ne pouvez pas supprimer votre propre compte depuis le panel.");
+  }
+
+  // 1. Médias : purge des objets dans le stockage (S3 ou local) avant la
+  //    suppression des lignes — les clés ne sont plus accessibles après.
+  const mediaKeys = await prisma.mediaAsset.findMany({
+    where: { ownerId: target.id },
+    select: { key: true },
+  });
+  await deleteStoredObjects(mediaKeys.map((media) => media.key));
+
+  // 2. Invalidation du cache public : les pages supprimées doivent 404,
+  //    pas resservir un cache obsolète.
+  await Promise.all(target.biolinks.map((biolink) => invalidatePageCache(biolink.slug)));
+
+  // 3. Suppression en cascade : biolinks (liens, blocks, signalements,
+  //    suspensions, stats), sessions, tokens, médias, emails.
+  await prisma.user.delete({ where: { id: target.id } });
+
+  await writeAdminLog({
+    admin,
+    action: "user.delete",
+    targetType: "user",
+    targetId: target.id,
+    metadata: {
+      username: target.username,
+      status: target.status,
+      deletedPages: target.biolinks.length,
+      deletedMedia: mediaKeys.length,
+    },
+    ip: clientIp(request),
+  });
+
+  return ok({
+    message: `${target.username} a été supprimé définitivement (${target.biolinks.length} page(s), ${mediaKeys.length} média(s)).`,
+  });
 });

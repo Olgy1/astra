@@ -1,18 +1,21 @@
 import "server-only";
+import { serverEnv } from "@/lib/env";
 import { redis, redisKeys } from "@/lib/redis";
 
 /**
  * Présence Discord d'un utilisateur.
  *
- * Forme stable exposée à la page publique. La source est l'API publique de
- * Lanyard (https://lanyard.rest) : elle relaie la présence des utilisateurs
- * inscrits sur son serveur Discord, sans que nous ayons à maintenir une
- * connexion gateway nous-mêmes. Si l'utilisateur n'est pas suivi par Lanyard
- * (ou si le service est indisponible), on renvoie « hors ligne » plutôt que
- * d'échouer — le widget se comporte déjà correctement dans ce cas.
+ * Sources, dans l'ordre :
+ *  1. Le bot auto-hébergé (dossier `discord-presence-bot/`), si la variable
+ *     `DISCORD_PRESENCE_URL` est définie. Il expose la même forme d'API que
+ *     Lanyard, donc le même traducteur sert aux deux.
+ *  2. L'API publique de Lanyard (https://lanyard.rest), en secours — utile
+ *     quand l'utilisateur n'est pas suivi par le bot (pas de serveur partagé).
+ *  3. « hors ligne » : jamais d'échec — le widget se comporte déjà
+ *     correctement dans ce cas.
  *
- * Le résultat est mis en cache 30 s : la présence change, mais interroger
- * Lanyard à chaque visiteur d'une page virale le ferait rate-limiter.
+ * Le résultat est mis en cache 30 s : la présence change, mais interroger la
+ * source à chaque visiteur d'une page virale la ferait rate-limiter.
  */
 
 export type Presence = {
@@ -41,26 +44,8 @@ type LanyardData = {
   activities?: LanyardActivity[];
 };
 
-/**
- * Interroge Lanyard et traduit sa réponse en `Presence`.
- * Ne lance jamais : toute anomalie (réseau, utilisateur non suivi) retombe
- * sur « hors ligne ».
- */
-async function fetchFromLanyard(discordId: string): Promise<Presence> {
-  const response = await fetch(`${LANYARD_ENDPOINT}/${discordId}`, {
-    // Sans cache navigateur : la fraîcheur est gérée par le cache Redis.
-    cache: "no-store",
-    // Sans timeout, une panne de Lanyard ferait pendre la requête jusqu'au
-    // timeout par défaut de fetch.
-    signal: AbortSignal.timeout(5000),
-  });
-
-  if (!response.ok) return OFFLINE;
-
-  const body = (await response.json()) as { success?: boolean; data?: LanyardData };
-  const data = body.success ? body.data : undefined;
-  if (!data) return OFFLINE;
-
+/** Traduit la forme d'API commune (Lanyard et bot auto-hébergé) en `Presence`. */
+function translateData(data: LanyardData): Presence {
   const status = data.discord_status ?? "offline";
 
   const spotify =
@@ -94,6 +79,28 @@ async function fetchFromLanyard(discordId: string): Promise<Presence> {
   return { status, activity, spotify };
 }
 
+/**
+ * Interroge une source (bot auto-hébergé ou Lanyard) et traduit sa réponse.
+ * Renvoie `null` si la source ne suit pas cet utilisateur ou est injoignable —
+ * l'appelant décide du repli.
+ */
+async function fetchFromEndpoint(endpoint: string, discordId: string): Promise<Presence | null> {
+  const response = await fetch(`${endpoint.replace(/\/$/, "")}/${discordId}`, {
+    // Sans cache navigateur : la fraîcheur est gérée par le cache Redis.
+    cache: "no-store",
+    // Sans timeout, une panne de la source ferait pendre la requête jusqu'au
+    // timeout par défaut de fetch.
+    signal: AbortSignal.timeout(5000),
+  });
+
+  if (!response.ok) return null;
+
+  const body = (await response.json()) as { success?: boolean; data?: LanyardData };
+  if (!body.success || !body.data) return null;
+
+  return translateData(body.data);
+}
+
 export async function getDiscordPresence(discordId: string): Promise<Presence> {
   const cacheKey = redisKeys.discordPresence(discordId);
 
@@ -104,12 +111,26 @@ export async function getDiscordPresence(discordId: string): Promise<Presence> {
     // Cache indisponible : on retombe sur la valeur par défaut.
   }
 
-  let presence: Presence;
-  try {
-    presence = await fetchFromLanyard(discordId);
-  } catch (error) {
-    console.error("[discord] présence indisponible :", error);
-    presence = OFFLINE;
+  let presence: Presence = OFFLINE;
+
+  // 1. Bot auto-hébergé (s'il est configuré).
+  const selfHostedUrl = serverEnv().DISCORD_PRESENCE_URL;
+  if (selfHostedUrl) {
+    try {
+      presence = (await fetchFromEndpoint(selfHostedUrl, discordId)) ?? OFFLINE;
+    } catch (error) {
+      console.error("[discord] bot auto-hébergé indisponible :", error);
+    }
+  }
+
+  // 2. Secours Lanyard — seulement si le bot ne connaît pas cet utilisateur
+  // (un « hors ligne » du bot est une vraie réponse, pas un échec à ignorer).
+  if (presence.status === "offline" && !presence.activity && !presence.spotify) {
+    try {
+      presence = (await fetchFromEndpoint(LANYARD_ENDPOINT, discordId)) ?? OFFLINE;
+    } catch (error) {
+      console.error("[discord] présence indisponible :", error);
+    }
   }
 
   try {

@@ -120,6 +120,24 @@ export function UsersView() {
     if (ok) setEditingLimit(null);
   };
 
+  const deleteUser = async (user: UserRow) => {
+    if (
+      !window.confirm(
+        `Supprimer définitivement le compte « ${user.username} » ?\n\n` +
+          `Ses ${user._count.biolinks} page(s), ses médias et tout son historique seront effacés. Action irréversible.`
+      )
+    )
+      return;
+    await runAction(
+      user.id,
+      `/api/admin/users/${user.id}`,
+      undefined,
+      true,
+      "DELETE",
+      `Le compte « ${user.username} » a été supprimé.`
+    );
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -334,6 +352,15 @@ export function UsersView() {
                             </button>
                           </>
                         )}
+                        <button
+                          type="button"
+                          disabled={busy === user.id}
+                          onClick={() => deleteUser(user)}
+                          className="rounded-lg border border-danger/30 bg-danger/5 px-2.5 py-1 text-xs font-medium text-danger transition-colors hover:bg-danger/15 disabled:opacity-50"
+                          title="Supprimer définitivement le compte"
+                        >
+                          Supprimer
+                        </button>
                       </div>
                     </td>
                   </tr>
