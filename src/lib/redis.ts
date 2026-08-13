@@ -42,7 +42,6 @@ export const redisKeys = {
   rateLimit: (scope: string, identifier: string) => `rl:${scope}:${identifier}`,
   loginFailures: (identifier: string) => `login:fail:${identifier}`,
   biolinkPage: (slug: string) => `page:${slug}`,
-  discordPresence: (discordId: string) => `presence:${discordId}`,
   uniqueView: (biolinkId: string, visitorHash: string) =>
     `view:${biolinkId}:${visitorHash}`,
   pageUnlock: (biolinkId: string, visitorHash: string) =>

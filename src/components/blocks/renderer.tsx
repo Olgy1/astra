@@ -8,7 +8,7 @@ import { AvatarBlock, HeaderBlock, TextBlock, ImageBlock, DividerBlock } from "@
 import { BadgesBlock } from "@/components/blocks/badges";
 import { LinksBlock, SocialsBlock, CtaButtonBlock } from "@/components/blocks/links";
 import { VideoBlock, SpotifyBlock, RedditBlock, DiscordServerBlock } from "@/components/blocks/embeds";
-import { VisitCounterBlock, CountdownBlock, DiscordPresenceBlock } from "@/components/blocks/widgets";
+import { VisitCounterBlock, CountdownBlock } from "@/components/blocks/widgets";
 
 /**
  * Table type → composant.
@@ -40,7 +40,6 @@ const RENDERERS: Record<string, ComponentType<BlockProps<any>>> = {
   discord_server: DiscordServerBlock,
   visit_counter: VisitCounterBlock,
   countdown: CountdownBlock,
-  discord_presence: DiscordPresenceBlock,
 };
 
 /**

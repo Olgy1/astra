@@ -63,10 +63,6 @@ const serverSchema = z.object({
 
   DISCORD_CLIENT_ID: z.string().optional(),
   DISCORD_CLIENT_SECRET: z.string().optional(),
-  DISCORD_BOT_TOKEN: z.string().optional(),
-  // URL du bot de présence auto-hébergé (dossier discord-presence-bot/).
-  // S'il est absent, la présence retombe sur Lanyard puis « hors ligne ».
-  DISCORD_PRESENCE_URL: z.string().url().optional(),
 
   LOGIN_ATTEMPTS_BEFORE_CAPTCHA: z.coerce.number().int().positive().default(5),
   CAPTCHA_SECRET_KEY: z.string().optional(),

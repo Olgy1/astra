@@ -48,8 +48,8 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-6 max-w-lg text-pretty text-lg text-content-secondary">
-            Avatar, bannière, musique d&apos;ambiance, présence Discord en direct,
-            effets visuels. Votre page, à votre image, en deux minutes.
+            Avatar, bannière, musique d&apos;ambiance, effets visuels. Votre page,
+            à votre image, en deux minutes.
           </p>
 
           <div className="mt-10 flex w-full max-w-xl flex-col gap-3 sm:flex-row">

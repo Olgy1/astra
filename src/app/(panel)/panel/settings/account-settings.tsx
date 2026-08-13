@@ -64,7 +64,8 @@ function DiscordSection({ linked }: { linked: boolean }) {
         {isLinked ? (
           <div className="flex items-center justify-between">
             <p className="text-sm text-content-secondary">
-              Discord est lié. Votre présence peut s&apos;afficher en direct sur votre page.
+              Discord est lié : vous pouvez utiliser votre avatar, votre bannière et votre
+              pseudo Discord dans l&apos;éditeur.
             </p>
             <Button variant="secondary" size="sm" loading={loading} onClick={unlink}>
               Délier
@@ -73,7 +74,8 @@ function DiscordSection({ linked }: { linked: boolean }) {
         ) : (
           <div className="flex items-center justify-between">
             <p className="text-sm text-content-secondary">
-              Liez Discord pour afficher votre statut et votre activité en temps réel.
+              Liez Discord pour utiliser votre avatar, votre bannière et votre pseudo
+              Discord sur votre page.
             </p>
             {/* Lien et non fetch : le flux OAuth est une navigation. */}
             <a

@@ -100,6 +100,7 @@ export async function GET(request: Request): Promise<NextResponse> {
           discordId: profile.id,
           discordUsername: profile.globalName ?? profile.username,
           discordAvatar: profile.avatarUrl,
+          discordBanner: profile.bannerUrl,
         },
       });
 
@@ -125,10 +126,11 @@ export async function GET(request: Request): Promise<NextResponse> {
         where: { id: existing.id },
         data: {
           lastLogin: new Date(),
-          // Le pseudo et l'avatar Discord changent : on rafraîchit à chaque
-          // connexion, sinon la page publique affiche un profil périmé.
+          // Le pseudo, l'avatar et la bannière Discord changent : on rafraîchit
+          // à chaque connexion, sinon l'éditeur importe un profil périmé.
           discordUsername: profile.globalName ?? profile.username,
           discordAvatar: profile.avatarUrl,
+          discordBanner: profile.bannerUrl,
         },
       });
 
@@ -172,6 +174,7 @@ export async function GET(request: Request): Promise<NextResponse> {
             discordId: profile.id,
             discordUsername: profile.globalName ?? profile.username,
             discordAvatar: profile.avatarUrl,
+            discordBanner: profile.bannerUrl,
             lastLogin: new Date(),
           },
         });
@@ -215,6 +218,7 @@ async function createUserFromDiscord(profile: {
   username: string;
   globalName: string | null;
   avatarUrl: string | null;
+  bannerUrl: string | null;
   email: string | null;
 }): Promise<CreatedUser | null> {
   const base = sanitizeDiscordUsername(profile.username);
@@ -241,6 +245,7 @@ async function createUserFromDiscord(profile: {
           discordId: profile.id,
           discordUsername: profile.globalName ?? profile.username,
           discordAvatar: profile.avatarUrl,
+          discordBanner: profile.bannerUrl,
           role: "MEMBER",
         },
         select: { id: true, username: true, role: true },

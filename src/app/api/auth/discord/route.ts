@@ -74,6 +74,6 @@ export const DELETE = withErrorHandling(async () => {
 
   return ok({
     message:
-      "Compte Discord délié. La présence en temps réel n'est plus affichée sur votre page.",
+      "Compte Discord délié. L'avatar, la bannière et le pseudo Discord ne sont plus disponibles dans l'éditeur.",
   });
 });

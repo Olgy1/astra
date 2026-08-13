@@ -48,6 +48,7 @@ CREATE TABLE "users" (
     "discord_id"         TEXT,
     "discord_username"   TEXT,
     "discord_avatar"     TEXT,
+    "discord_banner"     TEXT,
     "two_factor_enabled" BOOLEAN      NOT NULL DEFAULT FALSE,
     -- Secret TOTP chiffré en AES-256-GCM, jamais en clair.
     "two_factor_secret"  TEXT,

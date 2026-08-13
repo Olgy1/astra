@@ -277,6 +277,6 @@ Tableau complet des endpoints : [`docs/API.md`](docs/API.md).
 | 4 | Page publique `/[slug]` | ✅ |
 | 5 | Panel membre + éditeur live | ✅ |
 | 6 | Panel admin | ✅ |
-| 7 | Présence Discord, analytics | ✅ |
+| 7 | Analytics | ✅ |
 | 8 | EmailLog : historique des emails système + panel admin | ✅ |
 | 9 | Migrations Prisma versionnées + préparation Vercel/B2 | ⏳ |

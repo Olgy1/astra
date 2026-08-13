@@ -101,6 +101,9 @@ model User {
   discordId       String? @unique @map("discord_id")
   discordUsername String? @map("discord_username")
   discordAvatar   String? @map("discord_avatar")
+  // Bannière du profil Discord (CDN), récupérée à la liaison. L'éditeur
+  // propose de l'importer comme bannière de la page.
+  discordBanner String? @map("discord_banner")
 
   twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
   // Secret TOTP chiffré en AES-256-GCM (voir lib/crypto.ts).

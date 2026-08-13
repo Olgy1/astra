@@ -8,8 +8,8 @@ import { serverEnv } from "@/lib/env";
  * compte Discord à un compte Astra existant qui utilise la même adresse, ou
  * de créer le compte avec l'email réel au lieu d'un placeholder. Discord ne
  * renvoie l'email que si elle est vérifiée de son côté ; on ne la garde que
- * dans ce cas. Pas `guilds` : la présence temps réel (étape 7) passe par un
- * bot, pas par le token de l'utilisateur.
+ * dans ce cas. Pas `guilds` : seul le profil (identité, avatar, bannière)
+ * est nécessaire, et l'éditeur les importe depuis le compte lié.
  */
 
 const DISCORD_API = "https://discord.com/api/v10";
@@ -57,6 +57,8 @@ export type DiscordProfile = {
   username: string;
   globalName: string | null;
   avatarUrl: string | null;
+  /** Bannière du profil (CDN), ou null si le compte n'en a pas. */
+  bannerUrl: string | null;
   /** Email vérifié par Discord, ou null si non fournie. */
   email: string | null;
 };
@@ -68,6 +70,7 @@ type UserResponse = {
   username: string;
   global_name?: string | null;
   avatar?: string | null;
+  banner?: string | null;
   email?: string | null;
   verified?: boolean;
 };
@@ -121,6 +124,11 @@ export async function exchangeCodeForProfile(
       globalName: profile.global_name ?? null,
       avatarUrl: profile.avatar
         ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png?size=256`
+        : null,
+      bannerUrl: profile.banner
+        ? `https://cdn.discordapp.com/banners/${profile.id}/${profile.banner}${
+            profile.banner.startsWith("a_") ? ".gif" : ".png"
+          }?size=600`
         : null,
       // Discord ne fournit l'email qu'après vérification de son côté : on
       // ne la conserve que si `verified` le confirme, jamais sinon.

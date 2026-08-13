@@ -116,6 +116,8 @@ export const avatarSchema = z.object({
   borderColor: hexColor.default("#8b5cf6"),
   glowEnabled: z.boolean().default(false),
   glowColor: hexColor.default("#8b5cf6"),
+  /** Priorité à l'avatar du compte Discord lié, même si un avatar est uploadé. */
+  useDiscord: z.boolean().default(false),
 });
 
 /**

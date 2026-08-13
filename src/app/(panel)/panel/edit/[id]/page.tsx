@@ -29,7 +29,16 @@ export default async function EditorPage({ params }: Props) {
       links: { orderBy: { position: "asc" } },
       blocks: { orderBy: { position: "asc" } },
       mediaAssets: { select: { id: true, type: true, url: true, key: true } },
-      owner: { select: { username: true, discordId: true, discordAvatar: true, badges: true } },
+      owner: {
+        select: {
+          username: true,
+          discordId: true,
+          discordUsername: true,
+          discordAvatar: true,
+          discordBanner: true,
+          badges: true,
+        },
+      },
     },
   });
 

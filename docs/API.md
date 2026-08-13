@@ -128,7 +128,6 @@ JavaScript : c'est ce qui rend un XSS incapable de voler la session.
 | `POST` | `/api/public/:slug/view` | — | Enregistre une vue. Dédoublonnage par empreinte de visiteur sur 24 h. |
 | `POST` | `/api/public/:slug/click` | — | Enregistre un clic sur un lien. |
 | `POST` | `/api/public/:slug/report` | — | Signale la page. Rate limit 5 / h / IP. |
-| `GET` | `/api/public/:slug/presence` | — | Présence Discord du propriétaire. Cache 30 s. |
 
 ## Panel membre — `/api/me` (étape 5)
 

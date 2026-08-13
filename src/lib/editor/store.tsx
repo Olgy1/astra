@@ -59,7 +59,14 @@ export type EditorBiolink = {
   links: EditorLink[];
   blocks: EditorBlock[];
   media: { id: string; type: string; url: string; key: string }[];
-  owner: { username: string; discordId: string | null; discordAvatar: string | null; badges: string[] };
+  owner: {
+    username: string;
+    discordId: string | null;
+    discordUsername: string | null;
+    discordAvatar: string | null;
+    discordBanner: string | null;
+    badges: string[];
+  };
 };
 
 export type SaveState = "saved" | "saving" | "dirty" | "error";

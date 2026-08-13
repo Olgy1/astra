@@ -186,6 +186,14 @@ export function ThemePanel() {
             onApplied={(asset) => replaceMedia("AVATAR", asset)}
           />
         )}
+        {biolink.owner.discordAvatar && (
+          <ToggleControl
+            label="Utiliser l'avatar Discord"
+            description="Priorité à l'avatar du compte Discord lié, même si une photo est uploadée."
+            checked={theme.avatar.useDiscord}
+            onChange={(useDiscord) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, useDiscord } }))}
+          />
+        )}
         <SelectControl label="Forme" value={theme.avatar.shape} options={[{ value: "circle", label: "Rond" }, { value: "rounded", label: "Arrondi" }, { value: "square", label: "Carré" }]} onChange={(shape) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, shape } }))} />
         <SliderControl label="Taille" value={theme.avatar.size} min={48} max={200} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, size: v } }))} />
         <SliderControl label="Bordure" value={theme.avatar.borderWidth} min={0} max={8} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, borderWidth: v } }))} />
@@ -201,6 +209,16 @@ export function ThemePanel() {
           onUploaded={(asset) => { replaceMedia("BANNER", asset); updateTheme((c) => ({ ...c, banner: { ...c.banner, url: asset.url } })); }}
           onCleared={() => updateTheme((c) => ({ ...c, banner: { ...c.banner, url: undefined } }))}
         />
+        {biolink.owner.discordBanner && (
+          <button
+            type="button"
+            onClick={() => updateTheme((c) => ({ ...c, banner: { ...c.banner, url: biolink.owner.discordBanner! } }))}
+            className="self-start rounded-lg border border-[#5865F2]/40 bg-[#5865F2]/10 px-3 py-1.5 text-xs font-medium text-[#8b9cf7] transition-colors hover:bg-[#5865F2]/20"
+            title="Utiliser la bannière du compte Discord lié"
+          >
+            Utiliser ma bannière Discord
+          </button>
+        )}
         {theme.banner.url && (
           <SliderControl label="Hauteur" value={theme.banner.height} min={40} max={400} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, banner: { ...c.banner, height: v } }))} />
         )}

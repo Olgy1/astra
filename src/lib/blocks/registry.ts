@@ -6,7 +6,6 @@ import { avatarBlock } from "@/lib/blocks/definitions/avatar";
 import { badgesBlock } from "@/lib/blocks/definitions/badges";
 import { countdownBlock } from "@/lib/blocks/definitions/countdown";
 import { ctaButtonBlock } from "@/lib/blocks/definitions/cta-button";
-import { discordPresenceBlock } from "@/lib/blocks/definitions/discord-presence";
 import { discordServerBlock } from "@/lib/blocks/definitions/discord-server";
 import { dividerBlock } from "@/lib/blocks/definitions/divider";
 import { headerBlock } from "@/lib/blocks/definitions/header";
@@ -49,7 +48,6 @@ const DEFINITIONS: readonly AnyBlockDefinition[] = [
   redditBlock,
   discordServerBlock,
   // widgets
-  discordPresenceBlock,
   visitCounterBlock,
   countdownBlock,
 ];

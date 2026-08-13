@@ -10,11 +10,14 @@ import { renderInlineMarkdown } from "@/lib/markdown";
 import { resolveFontFamily } from "@/lib/theme/fonts";
 
 export function AvatarBlock({ config, page, theme }: BlockProps<AvatarBlockConfig>) {
-  // Priorité : image du block, puis média uploadé, puis avatar Discord.
+  // Priorité par défaut : image du block, puis média uploadé, puis avatar
+  // Discord. Quand « Utiliser l'avatar Discord » est activé dans le thème,
+  // l'avatar Discord passe devant l'upload.
   // Le dernier recours est l'initiale du pseudo : une page sans avatar reste
   // une page, elle ne doit pas afficher un carré vide.
-  const src =
-    config.imageUrl ?? mediaUrl(page, "AVATAR") ?? page.owner.discordAvatar ?? null;
+  const src = theme.avatar.useDiscord
+    ? page.owner.discordAvatar ?? mediaUrl(page, "AVATAR") ?? config.imageUrl ?? null
+    : config.imageUrl ?? mediaUrl(page, "AVATAR") ?? page.owner.discordAvatar ?? null;
 
   return (
     <div className="flex flex-col items-center gap-2">

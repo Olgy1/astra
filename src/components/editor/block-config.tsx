@@ -49,7 +49,9 @@ export function BlockConfigForm({ block }: { block: EditorBlock }) {
 
       {block.type === "avatar" && <AvatarForm config={config} setField={setField} />}
       {block.type === "badges" && <BadgesForm config={config} setField={setField} />}
-      {block.type === "header" && <HeaderForm config={config} update={update} />}
+      {block.type === "header" && (
+        <HeaderForm config={config} update={update} discordUsername={biolink.owner.discordUsername} />
+      )}
       {block.type === "text" && <TextForm config={config} setField={setField} />}
       {block.type === "image" && <ImageForm config={config} setField={setField} />}
       {block.type === "divider" && <DividerForm config={config} setField={setField} />}
@@ -60,7 +62,6 @@ export function BlockConfigForm({ block }: { block: EditorBlock }) {
       {block.type === "spotify" && <SpotifyForm config={config} setField={setField} />}
       {block.type === "reddit" && <RedditForm config={config} setField={setField} />}
       {block.type === "discord_server" && <DiscordServerForm config={config} setField={setField} />}
-      {block.type === "discord_presence" && <DiscordPresenceForm config={config} setField={setField} />}
       {block.type === "visit_counter" && <VisitCounterForm config={config} setField={setField} />}
       {block.type === "countdown" && <CountdownForm config={config} setField={setField} />}
     </div>
@@ -197,12 +198,34 @@ function BadgesForm({ config, setField }: { config: Config; setField: (k: string
   );
 }
 
-function HeaderForm({ config, update }: { config: Config; update: (p: Config) => void }) {
+function HeaderForm({
+  config,
+  update,
+  discordUsername,
+}: {
+  config: Config;
+  update: (p: Config) => void;
+  discordUsername: string | null;
+}) {
   const badges = Array.isArray(config.badges) ? (config.badges as { label?: string; color?: string; icon?: string }[]) : [];
 
   return (
     <>
-      <Field label="Titre" value={str(config, "title")} placeholder="Votre nom" onChange={(v) => update({ title: v || undefined })} hint="Vide = le titre de la page." />
+      <div className="flex items-end gap-2">
+        <div className="min-w-0 flex-1">
+          <Field label="Titre" value={str(config, "title")} placeholder="Votre nom" onChange={(v) => update({ title: v || undefined })} hint="Vide = le titre de la page." />
+        </div>
+        {discordUsername && (
+          <button
+            type="button"
+            onClick={() => update({ title: discordUsername })}
+            className="shrink-0 rounded-lg border border-[#5865F2]/40 bg-[#5865F2]/10 px-2.5 py-1.5 text-xs font-medium text-[#8b9cf7] transition-colors hover:bg-[#5865F2]/20"
+            title="Remplir avec le pseudo du compte Discord lié"
+          >
+            Pseudo Discord
+          </button>
+        )}
+      </div>
       <Field label="Sous-titre" value={str(config, "subtitle")} placeholder="petite phrase" onChange={(v) => update({ subtitle: v || undefined })} />
       <TextAreaControl label="Bio" value={str(config, "bio")} rows={3} maxLength={500} onChange={(v) => update({ bio: v || undefined })} />
       <ToggleControl
@@ -499,18 +522,6 @@ function DiscordServerForm({ config, setField }: { config: Config; setField: (k:
     <>
       <Field label="Code d'invitation" value={str(config, "inviteCode")} placeholder="abc123" onChange={(v) => setField("inviteCode", v || undefined)} hint="Le code seul, pas l'URL complète : « discord.gg/abc123 » → « abc123 »." />
       <Field label="Texte du bouton" value={str(config, "buttonLabel", "Rejoindre")} onChange={(v) => setField("buttonLabel", v)} />
-      <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
-    </>
-  );
-}
-
-function DiscordPresenceForm({ config, setField }: { config: Config; setField: (k: string, v: unknown) => void }) {
-  return (
-    <>
-      <ToggleControl label="Activité en cours" checked={bool(config, "showActivity", true)} onChange={(v) => setField("showActivity", v)} />
-      <ToggleControl label="Spotify" checked={bool(config, "showSpotify", true)} onChange={(v) => setField("showSpotify", v)} />
-      <ToggleControl label="Grande image" checked={bool(config, "showLargeImage", true)} onChange={(v) => setField("showLargeImage", v)} />
-      <ToggleControl label="Compact" checked={bool(config, "compact")} onChange={(v) => setField("compact", v)} />
       <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
     </>
   );
