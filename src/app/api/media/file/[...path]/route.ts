@@ -1,7 +1,9 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
-import { isS3Storage } from "@/lib/env";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { isS3Storage, serverEnv } from "@/lib/env";
+import { s3Client } from "@/lib/s3";
 import { localFilePath } from "@/lib/storage";
 
 /**
@@ -15,19 +17,26 @@ import { localFilePath } from "@/lib/storage";
  * des secondes à démarrer. Avec les Range, le lecteur récupère le premier
  * segment et lance la lecture pendant que le reste se télécharge en continu.
  *
- * N'existe que pour le mode local ; en S3, les URL pointent sur le bucket/CDN,
- * qui gère les Range nativement.
+ * En mode local, lit le fichier sur disque. En mode S3, sert le proxy média :
+ * le bucket peut être privé (B2 gratuit n'autorise pas les buckets publics),
+ * l'application lit l'objet avec sa clé et renvoie le flux — les requêtes
+ * Range sont transmises à S3, qui les gère nativement (indispensable pour le
+ * streaming vidéo).
  */
 export async function GET(
   request: Request,
   context: { params: Promise<{ path: string[] }> }
 ): Promise<Response> {
-  if (isS3Storage()) {
-    return new Response("Not found", { status: 404 });
-  }
-
   const { path } = await context.params;
   const key = path.join("/");
+
+  if (!key || key.includes("..") || key.startsWith("/")) {
+    return new Response("Invalid path", { status: 400 });
+  }
+
+  if (isS3Storage()) {
+    return serveFromS3(key, request.headers.get("range"));
+  }
 
   let filePath: string;
   try {
@@ -102,6 +111,52 @@ export async function GET(
 
   return new Response(webStream, {
     headers: { ...baseHeaders, "Content-Length": String(size) },
+  });
+}
+
+/** Sert un objet S3 (bucket privé) avec support des requêtes Range. */
+async function serveFromS3(
+  key: string,
+  range: string | null
+): Promise<Response> {
+  const command = new GetObjectCommand({
+    Bucket: serverEnv().S3_BUCKET!,
+    Key: key,
+    ...(range ? { Range: range } : {}),
+  });
+
+  let result;
+  try {
+    result = await s3Client().send(command);
+  } catch {
+    // Absent ou accès refusé : même réponse côté client, on ne distingue pas.
+    return new Response("Not found", { status: 404 });
+  }
+
+  if (!result.Body) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  // En runtime Node, Body est un flux Readable (le type SDK est une union).
+  const body = result.Body as Readable;
+
+  const headers: Record<string, string> = {
+    "Content-Type": result.ContentType ?? mimeFromExtension(key),
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "X-Content-Type-Options": "nosniff",
+  };
+
+  if (result.ContentLength !== undefined) {
+    headers["Content-Length"] = String(result.ContentLength);
+  }
+  if (result.ContentRange) {
+    headers["Content-Range"] = result.ContentRange;
+  }
+
+  return new Response(Readable.toWeb(body) as ReadableStream, {
+    status: result.$metadata.httpStatusCode,
+    headers,
   });
 }
 

@@ -170,9 +170,14 @@ export function buildMediaKey(
   return `u/${ownerId}/${type.toLowerCase()}/${randomUUID()}.${extension}`;
 }
 
-/** URL publique (CDN) d'une clé S3. */
+/** URL publique d'une clé, servie par le proxy média de l'application. */
 export function s3PublicUrl(key: string): string {
-  return `https://${serverEnv().S3_PUBLIC_HOST}/${key}`;
+  // Le bucket peut être privé (B2 gratuit n'autorise pas les buckets publics) :
+  // les médias passent par la route /api/media/file/... qui lit depuis S3 avec
+  // la clé d'application. URL absolue obligatoire : themeConfigSchema valide
+  // les URLs de médias avec .url(), qui rejette un chemin relatif.
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return `${base}/api/media/file/${key}`;
 }
 
 export type PresignedUpload = {
