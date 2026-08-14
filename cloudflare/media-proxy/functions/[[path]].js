@@ -70,6 +70,13 @@ export async function onRequest(context) {
   originRequest.headers.set("x-astra-proxy", "1");
   originRequest.headers.delete("range");
 
+  // Supprime toute réponse mise en cache pour l'URL d'origine (une ancienne
+  // version de cette fonction utilisait `cf.cacheEverything`, qui a pu laisser
+  // une 301 en cache edge servie sans jamais re-contacter l'application). Le
+  // fetch interne doit TOUJOURS atteindre l'application ; seul le cache du
+  // chemin public (clé = URL du visiteur) est utilisé, plus bas.
+  await cache.delete(originRequest);
+
   const originResponse = await fetch(originRequest, {
     redirect: "manual",
   });
