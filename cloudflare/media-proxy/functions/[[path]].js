@@ -29,9 +29,7 @@
 // MEDIA_ORIGIN dans le projet Pages (recommandé : pas de code à modifier).
 const DEFAULT_ORIGIN = "https://astra-wheat-psi.vercel.app";
 
-// TTL du cache edge Cloudflare : 1 mois. Le navigateur, lui, garde les
-// fichiers 1 an (en-tête Cache-Control immutable renvoyé ci-dessous).
-const EDGE_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
+
 
 export async function onRequest(context) {
   const { request, env, waitUntil } = context;
@@ -47,14 +45,20 @@ export async function onRequest(context) {
   const originUrl = `${origin}/api/media/file/${key}`;
 
   // 1. Cache hit ? La requête entière est servie depuis le cache Cloudflare,
-  //    sans toucher ni Vercel ni B2.
+  //    sans toucher ni Vercel ni B2. On refuse de servir une réponse 3xx
+  //    depuis le cache : si une ancienne redirection (vers nous-mêmes, lors
+  //    d'une précédente version) traînait dans le cache, on la jette et on
+  //    re-demande l'origine — qui répondra correctement et écrasera le cache.
   const cache = caches.default;
   const cached = await cache.match(request);
-  if (cached) return cached;
+  if (cached && cached.ok) return cached;
 
   // 2. Cache miss : on demande le fichier ENTIER à l'origine (sans Range),
-  //    pour que le cache contienne l'objet complet. `cacheEverything`
-  //    demande à Cloudflare de mettre la réponse en cache.
+  //    pour que le cache contienne l'objet complet. On n'utilise PAS
+  //    `cf.cacheEverything` : il ferait mettre en cache par l'edge les
+  //    réponses même non-2xx (ex. une ancienne 301), qui seraient ensuite
+  //    servies sans jamais ré-exécuter cette fonction. Le cache est géré
+  //    uniquement via `caches.default` ci-dessous (réponses 2xx seulement).
   //
   //    L'en-tête X-Astra-Proxy signale à l'application qu'on est le proxy
   //    CDN : elle sert alors le fichier depuis B2 SANS redirection (sinon
@@ -68,7 +72,6 @@ export async function onRequest(context) {
 
   const originResponse = await fetch(originRequest, {
     redirect: "manual",
-    cf: { cacheEverything: true, cacheTtl: EDGE_CACHE_TTL_SECONDS },
   });
 
   if (!originResponse.ok) {
