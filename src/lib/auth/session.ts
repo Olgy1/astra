@@ -71,13 +71,30 @@ export type SessionUser = {
 };
 
 /**
+ * Durée de vie des cookies selon le choix « Se souvenir de moi ».
+ *
+ * Persistant : `maxAge` = durée du refresh token (30 j par défaut).
+ * Éphémère : pas de `maxAge` — le navigateur efface le cookie à la fermeture,
+ * la session ne survit pas à la machine.
+ */
+function sessionCookieMaxAge(persistent: boolean): number | undefined {
+  if (!persistent) return undefined;
+  return serverEnv().REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60;
+}
+
+/**
  * Ouvre une session : crée la ligne, pose les deux cookies.
  * Appelé après un login réussi, une inscription, ou un callback OAuth.
+ *
+ * `remember: false` (case « Se souvenir de moi » décochée) pose des cookies
+ * de session : la session meurt à la fermeture du navigateur.
  */
 export async function createSession(
   user: Pick<User, "id" | "username" | "role">,
-  context: { userAgent?: string | null; ipAddress?: string | null }
+  context: { userAgent?: string | null; ipAddress?: string | null },
+  options: { remember?: boolean } = {}
 ): Promise<{ refreshToken: string; sessionId: string }> {
+  const persistent = options.remember !== false;
   const refreshToken = generateRefreshToken();
 
   const session = await prisma.session.create({
@@ -86,6 +103,7 @@ export async function createSession(
       refreshTokenHash: hashToken(refreshToken),
       userAgent: context.userAgent?.slice(0, 500) ?? null,
       ipAddress: context.ipAddress ?? null,
+      persistent,
       expiresAt: refreshTokenExpiry(),
     },
     select: { id: true },
@@ -98,6 +116,7 @@ export async function createSession(
     sid: session.id,
   });
 
+  const maxAge = sessionCookieMaxAge(persistent);
   const store = await cookies();
 
   store.set(ACCESS_COOKIE, accessToken, {
@@ -106,12 +125,12 @@ export async function createSession(
     // sinon le navigateur l'effacerait et le client ne saurait plus qu'il a
     // une session à rafraîchir. C'est la signature du JWT qui fait foi, pas
     // la présence du cookie.
-    maxAge: serverEnv().REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60,
+    ...(maxAge !== undefined ? { maxAge } : {}),
   });
 
   store.set(REFRESH_COOKIE, refreshToken, {
     ...refreshCookieOptions(),
-    maxAge: serverEnv().REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60,
+    ...(maxAge !== undefined ? { maxAge } : {}),
   });
 
   return { refreshToken, sessionId: session.id };
@@ -198,9 +217,17 @@ export async function refreshSession(): Promise<RefreshOutcome> {
     sid: session.id,
   });
 
-  const maxAge = serverEnv().REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60;
-  store.set(ACCESS_COOKIE, accessToken, { ...baseCookieOptions(), maxAge });
-  store.set(REFRESH_COOKIE, rotated, { ...refreshCookieOptions(), maxAge });
+  // On conserve le niveau de persistance d'origine : rafraîchir une session
+  // éphémère ne doit pas la transformer en session de 30 jours.
+  const maxAge = sessionCookieMaxAge(session.persistent);
+  store.set(ACCESS_COOKIE, accessToken, {
+    ...baseCookieOptions(),
+    ...(maxAge !== undefined ? { maxAge } : {}),
+  });
+  store.set(REFRESH_COOKIE, rotated, {
+    ...refreshCookieOptions(),
+    ...(maxAge !== undefined ? { maxAge } : {}),
+  });
 
   return {
     ok: true,

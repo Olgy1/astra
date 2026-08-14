@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
@@ -60,11 +60,54 @@ export function LoginForm() {
   const [code, setCode] = useState("");
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
 
+  // « Se souvenir de moi » : coché par défaut = session persistante 30 jours.
+  const [remember, setRemember] = useState(true);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string[]>>({});
 
+  // Vrai tant qu'on tente de récupérer une session existante (voir ci-dessous).
+  const [checking, setChecking] = useState(true);
+
   const discordError = searchParams.get("discord_error");
+  const next = searchParams.get("next");
+
+  /**
+   * Récupération silencieuse de session.
+   *
+   * Le middleware renvoie ici quand l'access token (15 min) a expiré, même si
+   * le refresh token (30 j) est encore valide — c'est pour ça qu'on « se
+   * reconnecte tout le temps » en revenant sur le site. On tente le refresh
+   * une fois au montage : s'il réussit, on repart directement vers la
+   * destination sans ressaisir le mot de passe.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/auth/refresh", {
+          method: "POST",
+          credentials: "same-origin",
+        });
+        if (cancelled) return;
+        if (response.ok) {
+          router.refresh();
+          router.replace(safeNextPath(next));
+          return;
+        }
+      } catch {
+        // Pas de réseau : on laisse le formulaire s'afficher normalement.
+      }
+      if (!cancelled) setChecking(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault();
@@ -75,6 +118,7 @@ export function LoginForm() {
     const result = await api.post<LoginResponse>("/api/auth/login", {
       identifier,
       password,
+      remember,
     });
 
     setLoading(false);
@@ -104,6 +148,7 @@ export function LoginForm() {
     const result = await api.post<TwoFactorResponse>("/api/auth/login/2fa", {
       challengeToken,
       code,
+      remember,
     });
 
     setLoading(false);
@@ -122,6 +167,21 @@ export function LoginForm() {
 
     router.refresh();
     router.push(safeNextPath(searchParams.get("next")));
+  }
+
+  // Pendant la vérification d'une session existante, on n'affiche pas encore
+  // le formulaire : s'il y a une session à récupérer, on repart aussitôt.
+  if (checking) {
+    return (
+      <div className="flex flex-col gap-6">
+        <header className="text-center">
+          <h1 className="text-xl font-semibold">Content de vous revoir</h1>
+        </header>
+        <p className="text-center text-sm text-content-secondary">
+          Vérification de votre session…
+        </p>
+      </div>
+    );
   }
 
   if (challengeToken) {
@@ -212,6 +272,16 @@ export function LoginForm() {
             Mot de passe oublié ?
           </Link>
         </div>
+
+        <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-content-secondary">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(event) => setRemember(event.target.checked)}
+            className="size-4 shrink-0 cursor-pointer rounded border-border-strong bg-surface-2 accent-accent"
+          />
+          Se souvenir de moi
+        </label>
 
         <Button type="submit" loading={loading} fullWidth size="lg">
           Se connecter

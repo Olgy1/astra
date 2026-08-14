@@ -41,6 +41,9 @@ export const loginSchema = z.object({
   identifier: z.string().trim().min(1, "Renseignez votre pseudo ou votre email.").max(254),
   password: z.string().min(1, "Renseignez votre mot de passe.").max(128),
   captchaToken: z.string().optional(),
+  // « Se souvenir de moi » : true (défaut) = session persistante 30 j,
+  // false = cookie de session effacé à la fermeture du navigateur.
+  remember: z.boolean().default(true),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -57,6 +60,9 @@ export const twoFactorLoginSchema = z.object({
   // connaître le mot de passe.
   challengeToken: z.string().min(1),
   code: z.string().trim().min(1, "Renseignez votre code."),
+  // Même sémantique que le login : porté jusqu'à l'ouverture de session
+  // réelle, qui n'a lieu qu'après le second facteur.
+  remember: z.boolean().default(true),
 });
 
 export type TwoFactorLoginInput = z.infer<typeof twoFactorLoginSchema>;

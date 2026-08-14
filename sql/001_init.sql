@@ -84,6 +84,9 @@ CREATE TABLE "sessions" (
     "refresh_token_hash" TEXT         NOT NULL,
     "user_agent"         TEXT,
     "ip_address"         TEXT,
+    -- True = session persistante (30 j), false = cookie de session effacé à
+    -- la fermeture du navigateur (case « Se souvenir de moi » du login).
+    "persistent"         BOOLEAN      NOT NULL DEFAULT TRUE,
     "expires_at"         TIMESTAMP(3) NOT NULL,
     "created_at"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "last_used_at"       TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

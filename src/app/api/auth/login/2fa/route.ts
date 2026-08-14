@@ -83,10 +83,14 @@ export const POST = withErrorHandling(async (request: Request) => {
     usedBackupCode = true;
   }
 
-  await createSession(user, {
-    userAgent: request.headers.get("user-agent"),
-    ipAddress: ip,
-  });
+  await createSession(
+    user,
+    {
+      userAgent: request.headers.get("user-agent"),
+      ipAddress: ip,
+    },
+    { remember: input.remember }
+  );
 
   await prisma.user.update({
     where: { id: user.id },
