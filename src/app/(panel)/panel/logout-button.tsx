@@ -16,7 +16,9 @@ export function LogoutButton() {
     // refresh() invalide le cache des composants serveur : sans lui, revenir
     // en arrière réafficherait le panel rendu avec la session éteinte.
     router.refresh();
-    router.push("/login");
+    // `loggedOut` fait afficher à la page de connexion un message de
+    // déconnexion (« Vous êtes déconnecté ») au lieu de l'accueil classique.
+    router.push("/login?loggedOut=1");
   }
 
   return (

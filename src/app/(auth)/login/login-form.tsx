@@ -72,6 +72,14 @@ export function LoginForm() {
 
   const discordError = searchParams.get("discord_error");
   const next = searchParams.get("next");
+  // Vrai quand on vient de se déconnecter : on affiche un message de
+  // déconnexion plutôt que l'accueil « Content de vous revoir ».
+  const loggedOut = searchParams.get("loggedOut") === "1";
+
+  const welcomeTitle = loggedOut ? "Vous êtes déconnecté" : "Content de vous revoir";
+  const welcomeSubtitle = loggedOut
+    ? "À bientôt !"
+    : "Connectez-vous pour retrouver votre page.";
 
   /**
    * Récupération silencieuse de session.
@@ -175,7 +183,7 @@ export function LoginForm() {
     return (
       <div className="flex flex-col gap-6">
         <header className="text-center">
-          <h1 className="text-xl font-semibold">Content de vous revoir</h1>
+          <h1 className="text-xl font-semibold">{welcomeTitle}</h1>
         </header>
         <p className="text-center text-sm text-content-secondary">
           Vérification de votre session…
@@ -234,10 +242,8 @@ export function LoginForm() {
   return (
     <div className="flex flex-col gap-6">
       <header className="text-center">
-        <h1 className="text-xl font-semibold">Content de vous revoir</h1>
-        <p className="mt-2 text-sm text-content-secondary">
-          Connectez-vous pour retrouver votre page.
-        </p>
+        <h1 className="text-xl font-semibold">{welcomeTitle}</h1>
+        <p className="mt-2 text-sm text-content-secondary">{welcomeSubtitle}</p>
       </header>
 
       {discordError && <Alert tone="danger">{DISCORD_ERRORS[discordError] ?? DISCORD_ERRORS.unexpected}</Alert>}
