@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ThemeConfig } from "@/lib/schemas/theme";
-import { isLowEndDevice } from "@/components/public/device";
 
 /**
  * Curseur personnalisé.
@@ -84,9 +83,6 @@ function TrailParticle({
 
 export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
   const { enabled, url, hotspotX, hotspotY, trailEnabled, trailColor, trailKind } = cursor;
-  // Machine modeste : moitié de la traînée, et le rendu garde huit nœuds (les
-  // derniers restent invisibles) pour ne pas casser l'hydratation.
-  const trailCount = trailEnabled && isLowEndDevice() ? 4 : 8;
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const cursorRef = useRef<HTMLImageElement>(null);
@@ -120,10 +116,7 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
     let visible = true;
-    // Dernier mouvement connu : au-delà d'un court répit, la boucle s'arrête
-    // (la traînée est immobile) et ne reprend qu'au prochain mouvement.
-    let lastMove = performance.now();
-    const TRAIL = trailEnabled ? trailCount : 0;
+    const TRAIL = trailEnabled ? 8 : 0;
     // Chaque particule porte sa position, sa taille et une rotation propre,
     // pour que la traînée ne soit pas un simple dégradé de points.
     const trail: { x: number; y: number; size: number; rotation: number }[] = Array.from(
@@ -168,33 +161,12 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
         previousY = point.y;
       }
 
-      // Souris au repos : la traînée est figée, rien ne justifie de continuer
-      // à peindre soixante images par seconde.
-      if (performance.now() - lastMove > 150) {
-        raf = 0;
-        return;
-      }
-
       raf = requestAnimationFrame(frame);
     }
 
     function onMove(event: MouseEvent) {
       mouseX = event.clientX;
       mouseY = event.clientY;
-      lastMove = performance.now();
-      // Boucle arrêtée (repos ou onglet caché) : un mouvement la relance.
-      if (!raf) raf = requestAnimationFrame(frame);
-    }
-
-    function onVisibility() {
-      if (document.hidden) {
-        cancelAnimationFrame(raf);
-        raf = 0;
-      } else {
-        // Réveil : on reprend comme si la souris venait de bouger.
-        lastMove = performance.now();
-        raf = requestAnimationFrame(frame);
-      }
     }
 
     // On masque le curseur quand la souris quitte la fenêtre.
@@ -208,7 +180,6 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
     window.addEventListener("mousemove", onMove, { passive: true });
     document.documentElement.addEventListener("mouseleave", onLeave);
     document.documentElement.addEventListener("mouseenter", onEnter);
-    document.addEventListener("visibilitychange", onVisibility);
     raf = requestAnimationFrame(frame);
 
     return () => {
@@ -216,9 +187,8 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
       window.removeEventListener("mousemove", onMove);
       document.documentElement.removeEventListener("mouseleave", onLeave);
       document.documentElement.removeEventListener("mouseenter", onEnter);
-      document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [enabled, ready, trailEnabled, trailCount, hotspotX, hotspotY]);
+  }, [enabled, ready, trailEnabled, hotspotX, hotspotY]);
 
   // Masque le curseur natif uniquement quand l'image personnalisée est prête.
   useEffect(() => {
@@ -248,8 +218,6 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
               style={{
                 width: 14 - index * 1.1,
                 height: 14 - index * 1.1,
-                // La boucle d'animation ne touche que les premiers nœuds
-                // (moitié sur machine modeste) ; les autres restent à 0.
                 opacity: 0,
                 willChange: "transform",
               }}

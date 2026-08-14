@@ -53,29 +53,7 @@ export function PageBackground({ background }: { background: Background }) {
       });
     }
 
-    // Onglet en arrière-plan : décoder une vidéo pleine page pour personne
-    // chauffe le processeur inutilement. On marque la vidéo « suspendue »
-    // pour que le verrou anti-pause (media-lock) ne la relance pas aussitôt,
-    // puis on la reprend au retour.
-    function onVisibility() {
-      if (!video) return;
-      if (document.hidden) {
-        video.setAttribute("data-astra-suspended", "");
-        video.pause();
-      } else {
-        video.removeAttribute("data-astra-suspended");
-        start();
-      }
-    }
-
-    const off = onEntered(start);
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      off();
-      document.removeEventListener("visibilitychange", onVisibility);
-      video.removeAttribute("data-astra-suspended");
-    };
+    return onEntered(start);
   }, [background.kind, wantsSound, videoVolume, videoUrl]);
 
   return (
@@ -91,11 +69,7 @@ export function PageBackground({ background }: { background: Background }) {
           muted
           loop
           playsInline
-          disablePictureInPicture
-          // metadata et non auto : ne pas télécharger toute la vidéo à
-          // l'ouverture, c'est le poste réseau et décodage le plus lourd sur
-          // les machines modestes — la lecture charge le reste au besoin.
-          preload="metadata"
+          preload="auto"
           className="size-full object-cover"
           style={blur ? { filter: blur } : undefined}
         />

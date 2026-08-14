@@ -42,10 +42,6 @@ export function MediaLock() {
     const scope = root.closest(".astra-page") ?? document;
 
     function resume(element: HTMLMediaElement) {
-      // Un média marqué « suspendu » (vidéo de fond mise en pause quand
-      // l'onglet passe en arrière-plan, pour économiser le processeur) ne
-      // doit pas être relancé par le verrou : c'est voulu.
-      if (element.hasAttribute("data-astra-suspended")) return;
       // play() sur un média en pause redémarre aussi un média arrivé au bout
       // (`ended`) : la musique et la vidéo de fond ne s'arrêtent jamais.
       if (element.paused) element.play().catch(() => {});

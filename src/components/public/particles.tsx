@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import type { ThemeConfig } from "@/lib/schemas/theme";
 import { onEntered } from "@/components/public/entered";
-import { isLowEndDevice } from "@/components/public/device";
 
 /**
  * Particules d'ambiance (neige, étoiles, bulles, confettis, pluie).
@@ -75,13 +74,6 @@ export function Particles({ effects }: { effects: ThemeConfig["effects"] }) {
     let height = 0;
     let particles: Particle[] = [];
     let frame = 0;
-    let started = false;
-
-    // Machines modestes : moitié du rendu sur un écran normal, et moins de
-    // particules à dessiner à chaque image. Les étoiles (des chemins à dix
-    // sommets) sont le cas le plus coûteux, et 200 par image font fondre les
-    // processeurs faibles.
-    const lowEnd = isLowEndDevice();
 
     function spawn(): Particle {
       const base = {
@@ -108,9 +100,8 @@ export function Particles({ effects }: { effects: ThemeConfig["effects"] }) {
 
     function resize() {
       // devicePixelRatio : sans ça, le canvas est flou sur les écrans
-      // retina, qui sont la norme sur mobile. Sur machine modeste, on garde
-      // un pixel pour un pixel : la moitié des pixels à peindre.
-      const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1 : 2);
+      // retina, qui sont la norme sur mobile.
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = canvas!.clientWidth;
       height = canvas!.clientHeight;
       canvas!.width = width * dpr;
@@ -119,7 +110,7 @@ export function Particles({ effects }: { effects: ThemeConfig["effects"] }) {
     }
 
     resize();
-    particles = Array.from({ length: lowEnd ? Math.min(count, 60) : count }, spawn);
+    particles = Array.from({ length: count }, spawn);
 
     function draw() {
       context!.clearRect(0, 0, width, height);
@@ -165,28 +156,14 @@ export function Particles({ effects }: { effects: ThemeConfig["effects"] }) {
       frame = requestAnimationFrame(draw);
     }
 
-    // Onglet en arrière-plan : plus personne ne regarde, la boucle s'arrête.
-    // C'est aussi le poste le plus rentable : un onglet caché qui continue à
-    // dessiner 60 images par seconde chauffe la machine pour rien.
-    function onVisibility() {
-      if (document.hidden) {
-        cancelAnimationFrame(frame);
-      } else if (started) {
-        draw();
-      }
-    }
-
     const off = onEntered(() => {
-      started = true;
       draw();
     });
-    document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("resize", resize);
 
     return () => {
       off();
       cancelAnimationFrame(frame);
-      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", resize);
     };
   }, [enabled, kind, color, count, speed]);
