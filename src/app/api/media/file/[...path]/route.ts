@@ -37,10 +37,16 @@ export async function GET(
   }
 
   if (isS3Storage()) {
-    // CDN en place : redirection vers le domaine public. Servie par Vercel
-    // sans toucher B2 — c'est le cache CDN qui renverra le fichier.
-    const publicBase = (serverEnv().S3_PUBLIC_URL ?? "").replace(/\/+$/, "");
-    if (publicBase) return Response.redirect(`${publicBase}/${key}`, 301);
+    // Requête du proxy CDN (fonction Cloudflare Pages) : on sert depuis B2
+    // directement, sans redirection — sinon la fonction se retrouverait en
+    // boucle (elle appelle cette route, qui la redirigerait vers elle-même).
+    const fromProxy = request.headers.get("x-astra-proxy") === "1";
+    if (!fromProxy) {
+      // CDN en place : redirection vers le domaine public. Servie par Vercel
+      // sans toucher B2 — c'est le cache CDN qui renverra le fichier.
+      const publicBase = (serverEnv().S3_PUBLIC_URL ?? "").replace(/\/+$/, "");
+      if (publicBase) return Response.redirect(`${publicBase}/${key}`, 301);
+    }
 
     return serveFromS3(key, request.headers.get("range"));
   }

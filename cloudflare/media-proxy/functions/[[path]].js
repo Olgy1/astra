@@ -55,12 +55,19 @@ export async function onRequest(context) {
   // 2. Cache miss : on demande le fichier ENTIER à l'origine (sans Range),
   //    pour que le cache contienne l'objet complet. `cacheEverything`
   //    demande à Cloudflare de mettre la réponse en cache.
+  //
+  //    L'en-tête X-Astra-Proxy signale à l'application qu'on est le proxy
+  //    CDN : elle sert alors le fichier depuis B2 SANS redirection (sinon
+  //    elle nous renverrait vers nous-mêmes — boucle infinie). On interdit
+  //    aussi de suivre les redirections, par sécurité.
   const originRequest = new Request(originUrl, {
     headers: request.headers,
   });
+  originRequest.headers.set("x-astra-proxy", "1");
   originRequest.headers.delete("range");
 
   const originResponse = await fetch(originRequest, {
+    redirect: "manual",
     cf: { cacheEverything: true, cacheTtl: EDGE_CACHE_TTL_SECONDS },
   });
 
