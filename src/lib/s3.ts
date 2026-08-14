@@ -170,12 +170,22 @@ export function buildMediaKey(
   return `u/${ownerId}/${type.toLowerCase()}/${randomUUID()}.${extension}`;
 }
 
-/** URL publique d'une clé, servie par le proxy média de l'application. */
+/**
+ * URL publique d'une clé.
+ *
+ * Avec `S3_PUBLIC_URL` (ex. `https://media.astra.is-a.dev`, un CDN Cloudflare
+ * devant le bucket), les médias sont servis directement depuis le CDN : URL
+ * absolue `https://media.astra.is-a.dev/<clé>`. Sans ce réglage (dev local,
+ * CDN pas encore en place), on retombe sur le proxy de l'application
+ * `/api/media/file/...` qui lit depuis S3 avec la clé d'application.
+ *
+ * URL absolue obligatoire dans les deux cas : themeConfigSchema valide les
+ * URLs de médias avec .url(), qui rejette un chemin relatif.
+ */
 export function s3PublicUrl(key: string): string {
-  // Le bucket peut être privé (B2 gratuit n'autorise pas les buckets publics) :
-  // les médias passent par la route /api/media/file/... qui lit depuis S3 avec
-  // la clé d'application. URL absolue obligatoire : themeConfigSchema valide
-  // les URLs de médias avec .url(), qui rejette un chemin relatif.
+  const publicBase = (serverEnv().S3_PUBLIC_URL ?? "").replace(/\/+$/, "");
+  if (publicBase) return `${publicBase}/${key}`;
+
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return `${base}/api/media/file/${key}`;
 }

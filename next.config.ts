@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const s3Host = process.env.S3_PUBLIC_HOST;
+// Hôte du CDN médias (ex. media.astra.is-a.dev), déduit de S3_PUBLIC_URL.
+const mediaHost = process.env.S3_PUBLIC_URL ? new URL(process.env.S3_PUBLIC_URL).hostname : null;
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -20,6 +22,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       ...(s3Host ? [{ protocol: "https" as const, hostname: s3Host }] : []),
+      ...(mediaHost ? [{ protocol: "https" as const, hostname: mediaHost }] : []),
       { protocol: "https" as const, hostname: "cdn.discordapp.com" },
     ],
   },

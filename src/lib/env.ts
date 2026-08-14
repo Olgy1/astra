@@ -50,6 +50,15 @@ const serverSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_PUBLIC_HOST: z.string().optional(),
+  // Base URL publique des médias (ex. https://media.astra.is-a.dev). Définie
+  // quand un CDN (Cloudflare Pages + cache) sert les fichiers devant le
+  // bucket : les nouvelles URLs de médias pointent dessus, et l'ancienne
+  // route proxy redirige vers lui. Absente (ou vide) = on continue à servir
+  // via le proxy de l'application.
+  S3_PUBLIC_URL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().url().optional()
+  ),
   S3_FORCE_PATH_STYLE: z
     .enum(["true", "false"])
     .default("false")

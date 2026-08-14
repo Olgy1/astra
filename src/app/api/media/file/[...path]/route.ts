@@ -17,11 +17,13 @@ import { localFilePath } from "@/lib/storage";
  * des secondes à démarrer. Avec les Range, le lecteur récupère le premier
  * segment et lance la lecture pendant que le reste se télécharge en continu.
  *
- * En mode local, lit le fichier sur disque. En mode S3, sert le proxy média :
- * le bucket peut être privé (B2 gratuit n'autorise pas les buckets publics),
- * l'application lit l'objet avec sa clé et renvoie le flux — les requêtes
- * Range sont transmises à S3, qui les gère nativement (indispensable pour le
- * streaming vidéo).
+ * En mode local, lit le fichier sur disque. En mode S3 avec `S3_PUBLIC_URL`
+ * (CDN Cloudflare devant le bucket), redirige en 301 vers le domaine public :
+ * les anciennes URLs déjà stockées continuent de marcher sans lire B2. En
+ * mode S3 sans CDN, sert le proxy média : le bucket peut être privé (B2
+ * gratuit n'autorise pas les buckets publics), l'application lit l'objet avec
+ * sa clé et renvoie le flux — les requêtes Range sont transmises à S3, qui
+ * les gère nativement (indispensable pour le streaming vidéo).
  */
 export async function GET(
   request: Request,
@@ -35,6 +37,11 @@ export async function GET(
   }
 
   if (isS3Storage()) {
+    // CDN en place : redirection vers le domaine public. Servie par Vercel
+    // sans toucher B2 — c'est le cache CDN qui renverra le fichier.
+    const publicBase = (serverEnv().S3_PUBLIC_URL ?? "").replace(/\/+$/, "");
+    if (publicBase) return Response.redirect(`${publicBase}/${key}`, 301);
+
     return serveFromS3(key, request.headers.get("range"));
   }
 
