@@ -40,9 +40,19 @@ La fonction est dans `cloudflare/media-proxy/functions/[[path]].js`.
    **Connect to Git**.
 3. Autorise GitHub si demandé, puis choisis le dépôt **`astra-media`**.
 4. **Framework preset** : `None`.
-5. **Build command** : laisse **vide**.
+5. **Build command** : laisse **vide** — ⚠️ ne mets PAS `npx wrangler deploy` :
+   c'est la commande du mode Workers, qui échoue sur un projet Pages
+   (`Could not detect a directory containing static files`).
 6. **Build output directory** : tape `public`.
 7. Clique **Save and Deploy**. Attends la fin du déploiement (1-2 min).
+
+> ⚠️ **Piège fréquent** : dans le nouveau tableau de bord, « Create » propose
+> Workers ET Pages. Il faut bien créer un projet **Pages** (onglet Pages →
+> Connect to Git). Un projet Workers connecté à Git lance `npx wrangler
+> deploy` et échoue sur ce dépôt (dossier `functions/` = mode Pages).
+> Si c'est arrivé : supprimer le projet (Settings → Danger zone → Delete) et
+> recréer en Pages. Le dépôt contient `public/index.html` (placeholder) pour
+> que le dossier statique soit toujours détecté.
 8. Note le domaine par défaut affiché (ex. `astra-media.pages.dev`) : il te
    faudra pour le fichier DNS de l'étape D. Vérifie qu'il répond :
    `https://astra-media.pages.dev/` → page vide sans erreur.
