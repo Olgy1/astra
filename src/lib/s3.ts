@@ -5,17 +5,17 @@ import {
   DeleteObjectsCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { serverEnv } from "@/lib/env";
 import type { MediaType } from "@prisma/client";
 
 /**
- * Stockage des médias.
+ * Stockage des médias (S3/Backblaze).
  *
- * Les uploads passent par une URL présignée : le fichier va du navigateur
- * directement à S3, sans transiter par le serveur Next.js. Ça évite de faire
- * remonter un background vidéo de 30 Mo à travers une route handler, et de
- * heurter la limite de taille de body des plateformes serverless.
+ * L'écriture se fait côté serveur (`s3PutObject`, appelé par la route
+ * `/api/media/upload`) : le navigateur ne parle qu'à l'API du site, donc
+ * aucun CORS à configurer sur le bucket. L'ancien flux « upload direct par
+ * URL présignée » a été retiré : il exigeait une règle CORS sur B2 et son
+ * échec bloquait tous les uploads.
  */
 
 const globalForS3 = globalThis as unknown as { s3: S3Client | undefined };
@@ -188,46 +188,6 @@ export function s3PublicUrl(key: string): string {
 
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return `${base}/api/media/file/${key}`;
-}
-
-export type PresignedUpload = {
-  uploadUrl: string;
-  key: string;
-  publicUrl: string;
-  expiresInSeconds: number;
-};
-
-/**
- * URL présignée pour un PUT direct depuis le navigateur.
- *
- * `ContentType` et `ContentLength` sont inclus dans la signature : S3 rejette
- * la requête si le client envoie autre chose que ce qu'il a déclaré. Sans ça,
- * un client pourrait annoncer une image de 2 Mo et téléverser un exécutable
- * de 2 Go.
- */
-export async function createPresignedUpload(
-  ownerId: string,
-  type: MediaType,
-  mimeType: string,
-  sizeBytes: number
-): Promise<PresignedUpload> {
-  const key = buildMediaKey(ownerId, type, mimeType);
-  const expiresInSeconds = 300;
-
-  const command = new PutObjectCommand({
-    Bucket: serverEnv().S3_BUCKET!,
-    Key: key,
-    ContentType: mimeType,
-    ContentLength: sizeBytes,
-    CacheControl: "public, max-age=31536000, immutable",
-  });
-
-  const uploadUrl = await getSignedUrl(s3Client(), command, {
-    expiresIn: expiresInSeconds,
-    signableHeaders: new Set(["content-type", "content-length"]),
-  });
-
-  return { uploadUrl, key, publicUrl: s3PublicUrl(key), expiresInSeconds };
 }
 
 /** Envoie un buffer sur S3 (upload côté serveur). */

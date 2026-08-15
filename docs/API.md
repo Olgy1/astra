@@ -114,8 +114,7 @@ JavaScript : c'est ce qui rend un XSS incapable de voler la session.
 
 | Méthode | Endpoint | Auth | Rôle |
 |---|---|---|---|
-| `POST` | `/api/media/presign` | Vérifié | URL S3 présignée. Valide type MIME et taille **avant** de signer. Rate limit 30 / h. |
-| `POST` | `/api/media/confirm` | Vérifié | Enregistre l'asset après upload réussi. Vérifie que l'objet existe vraiment. |
+| `POST` | `/api/media/upload` | Vérifié | Upload multipart via le serveur (local ou S3). Valide type MIME et taille. Rate limit par compte et IP. |
 | `GET` | `/api/media` | Session | Médias de l'utilisateur, filtrables par type. |
 | `DELETE` | `/api/media/:id` | Propriétaire | Supprime l'asset en base et sur S3. |
 

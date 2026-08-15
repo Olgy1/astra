@@ -161,21 +161,3 @@ export const updateBlockSchema = z
     "Aucune modification fournie."
   );
 
-// ---------------------------------------------------------------------------
-// Médias
-// ---------------------------------------------------------------------------
-
-export const presignSchema = z.object({
-  type: z.enum(["AVATAR", "BANNER", "AUDIO", "CURSOR", "BACKGROUND", "FONT"]),
-  mimeType: z.string().min(1).max(128),
-  // Le plafond générique suit la plus grande contrainte (fond vidéo 4K, 256 Mo) ;
-  // les limites par type sont vérifiées ensuite par `validateUpload`.
-  sizeBytes: z.number().int().positive().max(260 * 1024 * 1024),
-  biolinkId: z.string().uuid().optional(),
-});
-
-export const confirmMediaSchema = z.object({
-  key: z.string().min(1).max(512),
-  type: z.enum(["AVATAR", "BANNER", "AUDIO", "CURSOR", "BACKGROUND", "FONT"]),
-  biolinkId: z.string().uuid().optional(),
-});
