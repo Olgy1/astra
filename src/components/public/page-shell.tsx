@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { PublicPage } from "@/lib/biolinks/public-types";
+import type { PublicBlock, PublicPage } from "@/lib/biolinks/public-types";
+import type { ThemeConfig } from "@/lib/schemas/theme";
 import { themeToCssVars, customFontFace, fontFaceRule } from "@/lib/theme/css";
 import { resolveFontFamily } from "@/lib/theme/fonts";
 import { fontNameFromUrl } from "@/lib/theme/font-name";
@@ -37,6 +38,30 @@ import { mediaUrl } from "@/lib/biolinks/public-types";
  * Tout le reste est strictement identique — c'est ce qui garantit que
  * l'aperçu montre la vraie page et non une approximation.
  */
+/**
+ * Attribution CC BY : la police « Evil Empire » (Tup Wanders) exige une
+ * mention visible dès qu'elle est utilisée sur la page. On la détecte dans la
+ * typographie globale, l'écran d'entrée, le compteur de vues et les polices
+ * des blocks (y compris titre/sous-titre/bio du block En-tête).
+ */
+function usesEvilEmpire(theme: ThemeConfig, blocks: PublicBlock[]): boolean {
+  const candidates: (string | undefined)[] = [
+    theme.typography.fontFamily,
+    theme.entranceScreen.fontFamily,
+    theme.viewCounter.fontFamily,
+  ];
+  for (const block of blocks) {
+    const config = (block.config ?? {}) as Record<string, unknown>;
+    candidates.push(
+      typeof config.fontFamily === "string" ? config.fontFamily : undefined,
+      typeof config.titleFontFamily === "string" ? config.titleFontFamily : undefined,
+      typeof config.subtitleFontFamily === "string" ? config.subtitleFontFamily : undefined,
+      typeof config.bioFontFamily === "string" ? config.bioFontFamily : undefined
+    );
+  }
+  return candidates.includes("Evil Empire");
+}
+
 export function PageShell({ page, preview = false }: { page: PublicPage; preview?: boolean }) {
   const { theme } = page;
   const cssVars = themeToCssVars(theme);
@@ -208,6 +233,23 @@ export function PageShell({ page, preview = false }: { page: PublicPage; preview
         <Logo className="size-3.5 transition-colors group-hover:text-[var(--page-accent)]" />
         créé avec astra
       </a>
+      {/* Attribution CC BY requise quand « Evil Empire » est utilisée —
+          discrète : petit, muet, à la couleur secondaire de la page. */}
+      {usesEvilEmpire(theme, page.blocks) ? (
+        <a
+          href="https://tupwanders.nl"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1.5 text-[10px] leading-tight transition-opacity hover:opacity-100"
+          style={{
+            fontFamily: "var(--font-sans)",
+            textShadow: "none",
+            color: "color-mix(in oklab, var(--page-muted) 65%, transparent)",
+          }}
+        >
+          Police « Evil Empire » par Tup Wanders — licence CC BY
+        </a>
+      ) : null}
     </main>
   );
 

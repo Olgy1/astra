@@ -12,7 +12,7 @@ import {
 import { MediaUpload } from "@/components/editor/media-upload";
 import { AvatarCropModal } from "@/components/editor/avatar-crop";
 import { THEME_PRESETS } from "@/lib/theme/presets";
-import { fontChoices } from "@/lib/theme/fonts";
+import { fontChoices, fontCredit } from "@/lib/theme/fonts";
 
 /**
  * Apparence de la page : préréglages, arrière-plan, bannière, avatar, texte,
@@ -193,7 +193,7 @@ export function AppearancePanel() {
         <ColorControl label="Texte secondaire" value={theme.typography.mutedColor} onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, mutedColor: v } }))} />
         <SliderControl label="Taille" value={theme.typography.fontSize} min={12} max={24} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, fontSize: v } }))} />
         <SliderControl label="Espacement" value={theme.typography.letterSpacing} min={-2} max={8} step={0.5} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, letterSpacing: v } }))} />
-        <SelectControl label="Police" value={theme.typography.fontFamily} options={fontChoices(theme.typography.customFontUrl, theme.typography.customFontName)} onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, fontFamily: v } }))} />
+        <SelectControl label="Police" value={theme.typography.fontFamily} options={fontChoices(theme.typography.customFontUrl, theme.typography.customFontName)} onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, fontFamily: v } }))} credit={fontCredit(theme.typography.fontFamily)} />
         <p className="text-xs text-content-muted">
           La police du pseudo (bloc En-tête) se règle séparément : c&apos;est là que
           vous pouvez uploader une police personnalisée.

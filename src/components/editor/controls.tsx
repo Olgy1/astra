@@ -182,6 +182,7 @@ export function SelectControl<T extends string>({
   onChange,
   className,
   menuWidth = 240,
+  credit,
 }: {
   /** Libellé affiché à gauche. Omettre pour un sélecteur « nu » (en ligne). */
   label?: string;
@@ -194,6 +195,8 @@ export function SelectControl<T extends string>({
   className?: string;
   /** Largeur du menu déroulant (px). */
   menuWidth?: number;
+  /** Ligne d'attribution affichée sous le contrôle (ex. créateur d'une police). */
+  credit?: string;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -331,11 +334,16 @@ export function SelectControl<T extends string>({
   if (!label) return control;
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <label htmlFor={id} className="text-sm text-content-secondary">
-        {label}
-      </label>
-      {control}
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor={id} className="text-sm text-content-secondary">
+          {label}
+        </label>
+        {control}
+      </div>
+      {credit ? (
+        <p className="mt-1 text-[11px] leading-snug text-content-muted">{credit}</p>
+      ) : null}
     </div>
   );
 }

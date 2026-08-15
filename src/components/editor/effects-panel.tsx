@@ -10,7 +10,7 @@ import {
   ToggleControl,
 } from "@/components/editor/controls";
 import { MediaUpload } from "@/components/editor/media-upload";
-import { fontChoices } from "@/lib/theme/fonts";
+import { fontChoices, fontCredit } from "@/lib/theme/fonts";
 
 /**
  * Effets et animations de la page.
@@ -131,6 +131,7 @@ export function EffectsPanel() {
               value={theme.entranceScreen.fontFamily}
               options={fontChoices(theme.typography.customFontUrl, theme.typography.customFontName)}
               onChange={(fontFamily) => updateTheme((c) => ({ ...c, entranceScreen: { ...c.entranceScreen, fontFamily } }))}
+              credit={fontCredit(theme.entranceScreen.fontFamily)}
             />
             <SliderControl label="Flou de l'écran" value={theme.entranceScreen.blurAmount} min={0} max={40} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, entranceScreen: { ...c.entranceScreen, blurAmount: v } }))} />
           </>
@@ -167,6 +168,7 @@ export function EffectsPanel() {
             ...fontChoices(theme.typography.customFontUrl, theme.typography.customFontName),
           ]}
           onChange={(fontFamily) => updateTheme((c) => ({ ...c, viewCounter: { ...c.viewCounter, fontFamily } }))}
+          credit={fontCredit(theme.viewCounter.fontFamily)}
         />
       </ControlGroup>
     </div>

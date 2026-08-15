@@ -108,6 +108,22 @@ export const FONT_LABELS: Record<string, string> = {
 };
 
 /**
+ * Crédits d'attribution obligatoires (licences CC BY, etc.) par police.
+ *
+ * Affiché sous le sélecteur quand la police sélectionnée en a un. Complète le
+ * commentaire d'attribution de src/app/fonts.css : la licence CC BY exige une
+ * attribution visible par l'utilisateur, pas seulement dans le code.
+ */
+export const FONT_CREDITS: Record<string, string> = {
+  "Evil Empire": "Police « Evil Empire » par Tup Wanders (tupwanders.nl) — licence CC BY.",
+};
+
+/** Crédit d'une police du catalogue, ou `undefined` si aucune attribution requise. */
+export function fontCredit(fontFamily: string | undefined): string | undefined {
+  return fontFamily ? FONT_CREDITS[fontFamily] : undefined;
+}
+
+/**
  * Pile de polices CSS pour chaque police du catalogue.
  *
  * Chaque entrée référence la variable CSS exposée par `next/font/google`

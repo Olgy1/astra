@@ -14,7 +14,7 @@ import { extractInviteCode } from "@/lib/blocks/definitions/discord-server";
 import { HEADER_SIZES } from "@/lib/blocks/definitions/header";
 import { SOCIAL_META, detectPlatformFromUrl } from "@/lib/socials";
 import { TEXT_ANIMATIONS, TEXT_ANIMATION_LABELS } from "@/lib/text-animations";
-import { fontChoices } from "@/lib/theme/fonts";
+import { fontChoices, fontCredit } from "@/lib/theme/fonts";
 import { displayNameFromFileName } from "@/lib/theme/font-name";
 import { MediaUpload } from "@/components/editor/media-upload";
 
@@ -173,6 +173,7 @@ function FontField({
       onChange={(next) =>
         onChange(inheritAsUndefined && next === "inherit" ? undefined : next)
       }
+      credit={fontCredit(current)}
     />
   );
 }
