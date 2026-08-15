@@ -70,14 +70,14 @@ export function SettingsPanel() {
         <form onSubmit={handleSlugChange} className="flex flex-col gap-2">
           <Input
             label="Lien"
-            prefix="astra.is-a.dev/"
+            prefix="astraa.is-cool.dev/"
             value={slug}
             onChange={(event) => setSlug(event.target.value.toLowerCase())}
             errors={slugError ? [slugError] : undefined}
           />
           {slug !== biolink.slug && (
             <Alert tone="warning">
-              L&apos;ancien lien astra.is-a.dev/{biolink.slug} cessera de fonctionner.
+              L&apos;ancien lien astraa.is-cool.dev/{biolink.slug} cessera de fonctionner.
             </Alert>
           )}
           <Button type="submit" size="sm" loading={slugSaving} disabled={slug === biolink.slug}>

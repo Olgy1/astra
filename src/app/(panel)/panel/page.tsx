@@ -73,7 +73,7 @@ export default async function PanelPage() {
               <li key={biolink.id}>
                 <div className="flex items-center gap-2 rounded-2xl border border-border-subtle bg-surface-1 p-4 transition-colors hover:border-border-strong">
                   <Link href={`/panel/edit/${biolink.id}`} className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">astra.is-a.dev/{biolink.slug}</p>
+                    <p className="text-sm font-medium">astraa.is-cool.dev/{biolink.slug}</p>
                     <p className="mt-0.5 text-xs text-content-muted">
                       {biolink._count.links} liens · {biolink._count.blocks} blocks · {biolink.uniqueViews}{" "}
                       {biolink.uniqueViews === 0 || biolink.uniqueViews === 1 ? "vue unique" : "vues uniques"}

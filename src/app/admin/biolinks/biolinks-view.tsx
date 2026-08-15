@@ -66,7 +66,7 @@ export function BiolinksView() {
   };
 
   const remove = async (id: string, slug: string) => {
-    if (!window.confirm(`Supprimer définitivement la page astra.is-a.dev/${slug} ?`)) return;
+    if (!window.confirm(`Supprimer définitivement la page astraa.is-cool.dev/${slug} ?`)) return;
     setBusy(id);
     setError(null);
     setNotice(null);
@@ -83,7 +83,7 @@ export function BiolinksView() {
   const resetStats = async (id: string, slug: string) => {
     if (
       !window.confirm(
-        `Réinitialiser à 0 les statistiques de astra.is-a.dev/${slug} ? Les vues, visites et données journalières seront définitivement effacées.`
+        `Réinitialiser à 0 les statistiques de astraa.is-cool.dev/${slug} ? Les vues, visites et données journalières seront définitivement effacées.`
       )
     )
       return;
@@ -112,7 +112,7 @@ export function BiolinksView() {
       setCreateError(result.message);
       return;
     }
-    setNotice(`Page astra.is-a.dev/${result.data.biolink.slug} créée.`);
+    setNotice(`Page astraa.is-cool.dev/${result.data.biolink.slug} créée.`);
     setNewOwner("");
     setNewSlug("");
     setNewTitle("");
@@ -242,7 +242,7 @@ export function BiolinksView() {
                         rel="noopener noreferrer"
                         className="font-medium text-content-primary hover:text-accent"
                       >
-                        astra.is-a.dev/{biolink.slug}
+                        astraa.is-cool.dev/{biolink.slug}
                       </a>
                       <span className="block max-w-64 truncate text-xs text-content-muted">
                         {biolink.title || "Sans titre"}

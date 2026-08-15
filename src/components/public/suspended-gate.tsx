@@ -37,7 +37,7 @@ export function SuspendedGate({
         </span>
 
         <h1 className="text-lg font-semibold">Page suspendue</h1>
-        <p className="mt-1 font-mono text-xs text-white/50">astra.is-a.dev/{slug}</p>
+        <p className="mt-1 font-mono text-xs text-white/50">astraa.is-cool.dev/{slug}</p>
 
         {reason && (
           <p className="mt-4 rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-white/70">

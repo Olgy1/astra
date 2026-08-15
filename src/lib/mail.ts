@@ -129,27 +129,66 @@ function appUrl(): string {
     : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
-/** Gabarit HTML commun. Style inline : les clients mail ignorent le CSS externe. */
+/**
+ * Gabarit HTML commun — même DA que le site (fond violet sombre, étoile
+ * Astra ✦, accent #8b5cf6, halos). Style 100 % inline : les clients mail
+ * ignorent le CSS externe, et Outlook ne rend ni les flexbox ni les
+ * background-clip — on reste sur tables + couleurs pleines en secours.
+ */
 function layout(title: string, body: string, cta?: { label: string; url: string }): string {
   return `<!doctype html>
 <html lang="fr">
-  <body style="margin:0;padding:24px;background:#0a0a0f;font-family:-apple-system,Segoe UI,sans-serif;">
-    <table role="presentation" style="max-width:480px;margin:0 auto;background:#12121a;border-radius:16px;border:1px solid #27272a;">
+  <head>
+    <meta charset="utf-8">
+    <meta name="color-scheme" content="dark">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body style="margin:0;padding:24px 16px;background:#0b0b12;font-family:Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
-        <td style="padding:32px;">
-          <p style="margin:0 0 24px;font-size:18px;font-weight:600;color:#fff;">astra</p>
-          <h1 style="margin:0 0 16px;font-size:20px;color:#fff;">${title}</h1>
-          <div style="font-size:14px;line-height:1.6;color:#a1a1aa;">${body}</div>
-          ${
-            cta
-              ? `<p style="margin:24px 0 0;">
-                   <a href="${cta.url}" style="display:inline-block;padding:12px 24px;background:#8b5cf6;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:500;">${cta.label}</a>
-                 </p>
-                 <p style="margin:24px 0 0;font-size:12px;color:#71717a;word-break:break-all;">
-                   Si le bouton ne fonctionne pas, copiez ce lien :<br>${cta.url}
-                 </p>`
-              : ""
-          }
+        <td align="center">
+          <!-- Halo violet en tête de carte, comme le glow des pages publiques. -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+            <tr>
+              <td height="4" style="height:4px;font-size:0;line-height:0;background:#8b5cf6;background:linear-gradient(90deg,#8b5cf6,#c084fc,#8b5cf6);border-radius:16px 16px 0 0;"></td>
+            </tr>
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background:#14141e;border-radius:0 0 16px 16px;border:1px solid #352b5e;border-top:none;">
+            <tr>
+              <td style="padding:32px 32px 8px;">
+                <!-- Étoile + nom, comme le Wordmark du site. -->
+                <p style="margin:0 0 24px;font-size:16px;font-weight:600;letter-spacing:-0.02em;color:#ffffff;"><span style="color:#8b5cf6;">✦</span>&nbsp;astra</p>
+                <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;font-weight:600;color:#ffffff;">${title}</h1>
+                <div style="font-size:14px;line-height:1.65;color:#a8a8bc;">${body}</div>
+              </td>
+            </tr>
+            ${
+              cta
+                ? `<tr>
+                     <td style="padding:24px 32px 0;">
+                       <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                         <tr>
+                           <td style="border-radius:10px;background:#7c3aed;background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 8px 24px rgba(139,92,246,0.35);">
+                             <a href="${cta.url}" style="display:inline-block;padding:12px 28px;color:#ffffff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;">${cta.label}</a>
+                           </td>
+                         </tr>
+                       </table>
+                       <p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#8b8b9a;word-break:break-all;">
+                         Si le bouton ne fonctionne pas, copiez ce lien :<br>
+                         <a href="${cta.url}" style="color:#a78bfa;text-decoration:underline;">${cta.url}</a>
+                       </p>
+                     </td>
+                   </tr>`
+                : ""
+            }
+            <tr>
+              <td style="padding:32px;">
+                <!-- Séparateur lueur, comme les DividerBlocks de la page. -->
+                <div style="height:1px;font-size:0;line-height:0;background:#241d3d;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.4),transparent);"></div>
+                <p style="margin:16px 0 0;text-align:center;font-size:12px;color:#8b8b9a;"><span style="color:#8b5cf6;">✦</span>&nbsp;créé avec astra</p>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>
@@ -277,12 +316,12 @@ export async function sendSuspensionEmail(
     subject: "Votre page a été suspendue",
     html: layout(
       "Page suspendue",
-      `<p>Bonjour ${username}, votre page <strong>astra.is-a.dev/${slug}</strong> a été suspendue temporairement par la modération.</p>
+      `<p>Bonjour ${username}, votre page <strong>${appUrl()}/${slug}</strong> a été suspendue temporairement par la modération.</p>
        <p><strong>Motif :</strong> ${escapedReason}</p>
        <p>La page est suspendue ${untilLabel}. Vous pouvez toujours modifier son contenu depuis votre espace pour corriger le problème ; elle réapparaîtra automatiquement à la fin de la suspension.</p>`,
       { label: "Modifier ma page", url: `${appUrl()}/panel` }
     ),
-    text: `Bonjour ${username},\n\nVotre page astra.is-a.dev/${slug} a été suspendue temporairement par la modération.\n\nMotif : ${reason}\n\nLa page est suspendue ${untilLabel}. Vous pouvez toujours modifier son contenu depuis votre espace pour corriger le problème ; elle réapparaîtra automatiquement à la fin de la suspension.\n\n${appUrl()}/panel`,
+    text: `Bonjour ${username},\n\nVotre page ${appUrl()}/${slug} a été suspendue temporairement par la modération.\n\nMotif : ${reason}\n\nLa page est suspendue ${untilLabel}. Vous pouvez toujours modifier son contenu depuis votre espace pour corriger le problème ; elle réapparaîtra automatiquement à la fin de la suspension.\n\n${appUrl()}/panel`,
   });
 }
 
@@ -304,11 +343,11 @@ export async function sendUnsuspensionEmail(
     subject: "La suspension de votre page a été levée",
     html: layout(
       "Suspension levée",
-      `<p>Bonjour ${username}, la suspension de votre page <strong>astra.is-a.dev/${slug}</strong> a été levée par la modération.</p>
+      `<p>Bonjour ${username}, la suspension de votre page <strong>${appUrl()}/${slug}</strong> a été levée par la modération.</p>
        <p>Votre page est de nouveau en ligne et vous avez retrouvé le contrôle de sa publication.</p>`,
       { label: "Voir ma page", url: `${appUrl()}/${slug}` }
     ),
-    text: `Bonjour ${username},\n\nLa suspension de votre page astra.is-a.dev/${slug} a été levée par la modération.\n\nVotre page est de nouveau en ligne et vous avez retrouvé le contrôle de sa publication.\n\n${appUrl()}/${slug}`,
+    text: `Bonjour ${username},\n\nLa suspension de votre page ${appUrl()}/${slug} a été levée par la modération.\n\nVotre page est de nouveau en ligne et vous avez retrouvé le contrôle de sa publication.\n\n${appUrl()}/${slug}`,
   });
 }
 

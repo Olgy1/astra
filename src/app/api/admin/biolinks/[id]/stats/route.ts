@@ -45,5 +45,5 @@ export const POST = withErrorHandling(async (request: Request, context: Context)
     ip: clientIp(request),
   });
 
-  return ok({ message: `Les statistiques de astra.is-a.dev/${biolink.slug} ont été réinitialisées.` });
+  return ok({ message: `Les statistiques de astraa.is-cool.dev/${biolink.slug} ont été réinitialisées.` });
 });

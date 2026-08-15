@@ -62,7 +62,7 @@ export function CreatePageButton({ suggestedSlug }: { suggestedSlug: string }) {
         <form onSubmit={handleCreate} className="mt-4 flex flex-col gap-3">
           <Input
             label="Adresse"
-            prefix="astra.is-a.dev/"
+            prefix="astraa.is-cool.dev/"
             value={slug}
             onChange={(event) => setSlug(event.target.value.toLowerCase())}
             errors={error ? [error] : undefined}

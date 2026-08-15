@@ -63,7 +63,7 @@ export function ReportForm({ slug }: { slug: string }) {
         </header>
 
         <Alert tone="success">
-          Le signalement pour <span className="font-mono">astra.is-a.dev/{slug}</span> a été enregistré.
+          Le signalement pour <span className="font-mono">astraa.is-cool.dev/{slug}</span> a été enregistré.
         </Alert>
 
         <p className="text-center text-xs text-content-muted">
@@ -84,7 +84,7 @@ export function ReportForm({ slug }: { slug: string }) {
         <p className="mt-2 text-sm text-content-secondary">
           Confirmer le signalement pour :
         </p>
-        <p className="mt-1 font-mono text-sm text-accent">astra.is-a.dev/{slug}</p>
+        <p className="mt-1 font-mono text-sm text-accent">astraa.is-cool.dev/{slug}</p>
       </header>
 
       {error && <Alert tone="danger">{error}</Alert>}

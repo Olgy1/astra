@@ -139,10 +139,10 @@ export default function TermsPage() {
           Les présentes conditions sont soumises au droit français. Pour toute question,
           réclamation ou demande relative au service, écrivez à{" "}
           <a
-            href="mailto:contact@astra.is-a.dev"
+            href="mailto:contact@astraa.is-cool.dev"
             className="font-medium text-accent transition-colors hover:text-accent-hover"
           >
-            contact@astra.is-a.dev
+            contact@astraa.is-cool.dev
           </a>
           .
         </LegalP>

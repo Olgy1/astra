@@ -56,7 +56,7 @@ export default function HomePage() {
           <div className="mt-10 flex w-full max-w-xl flex-col gap-3 sm:flex-row">
             <div className="flex min-w-0 flex-1 items-center rounded-xl border border-border-subtle bg-surface-1 px-5 py-4 focus-within:border-accent">
               <span className="shrink-0 select-none whitespace-nowrap text-base text-content-muted">
-                astra.is-a.dev/
+                astraa.is-cool.dev/
               </span>
               <input
                 type="text"

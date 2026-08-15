@@ -19,7 +19,7 @@ export function DeletePageButton({ id, slug }: { id: string; slug: string }) {
 
   async function handleDelete() {
     const confirmed = window.confirm(
-      `Supprimer définitivement la page astra.is-a.dev/${slug} ?\n\nCette action est irréversible : liens, blocks et médias seront effacés.`
+      `Supprimer définitivement la page astraa.is-cool.dev/${slug} ?\n\nCette action est irréversible : liens, blocks et médias seront effacés.`
     );
     if (!confirmed) return;
 

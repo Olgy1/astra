@@ -51,7 +51,7 @@ export const POST = withErrorHandling(
         slug: updated.slug,
         changed: true,
         previousSlug: biolink.slug,
-        message: `Votre page est maintenant sur astra.is-a.dev/${updated.slug}. L'ancien lien ne fonctionne plus.`,
+        message: `Votre page est maintenant sur astraa.is-cool.dev/${updated.slug}. L'ancien lien ne fonctionne plus.`,
       });
     } catch (error) {
       if (

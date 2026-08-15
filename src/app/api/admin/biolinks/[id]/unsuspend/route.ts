@@ -71,6 +71,6 @@ export const POST = withErrorHandling(async (request: Request, context: Context)
   });
 
   return ok({
-    message: `La suspension de astra.is-a.dev/${biolink.slug} a été levée. Le propriétaire a été prévenu par email.`,
+    message: `La suspension de astraa.is-cool.dev/${biolink.slug} a été levée. Le propriétaire a été prévenu par email.`,
   });
 });

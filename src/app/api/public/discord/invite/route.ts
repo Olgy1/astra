@@ -33,7 +33,7 @@ export const GET = withErrorHandling(async (request: Request) => {
     `https://discord.com/api/v10/invites/${encodeURIComponent(code)}?with_counts=true&with_expiration=true`,
     {
       headers: {
-        "User-Agent": "Astra (https://astra.is-a.dev, contact@astra.is-a.dev)",
+        "User-Agent": "Astra (https://astraa.is-cool.dev, contact@astraa.is-cool.dev)",
       },
       // Cache serveur : une invitation n'est relue au plus qu'une fois par
       // heure, même si des dizaines de visiteurs chargent la page.

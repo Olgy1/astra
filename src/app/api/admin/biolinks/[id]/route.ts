@@ -97,7 +97,7 @@ export const DELETE = withErrorHandling(async (request: Request, context: Contex
   });
 
   return ok({
-    message: `La page astra.is-a.dev/${biolink.slug} a été supprimée.`,
+    message: `La page astraa.is-cool.dev/${biolink.slug} a été supprimée.`,
     deletedAssets: assets.length,
   });
 });

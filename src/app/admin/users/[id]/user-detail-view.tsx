@@ -208,7 +208,7 @@ export function UserDetailView({ userId }: { userId: string }) {
   };
 
   const unsuspendBiolink = async (biolinkId: string, slug: string) => {
-    if (!window.confirm(`Lever la suspension de la page astra.is-a.dev/${slug} ? Le propriétaire sera prévenu par email.`)) return;
+    if (!window.confirm(`Lever la suspension de la page astraa.is-cool.dev/${slug} ? Le propriétaire sera prévenu par email.`)) return;
     setBusy(`unsuspend:${biolinkId}`);
     setError(null);
     setNotice(null);
@@ -223,7 +223,7 @@ export function UserDetailView({ userId }: { userId: string }) {
   };
 
   const deleteBiolink = async (biolinkId: string, slug: string) => {
-    if (!window.confirm(`Supprimer définitivement la page astra.is-a.dev/${slug} ?`)) return;
+    if (!window.confirm(`Supprimer définitivement la page astraa.is-cool.dev/${slug} ?`)) return;
     setBusy(`biolink:${biolinkId}`);
     setError(null);
     setNotice(null);
@@ -485,7 +485,7 @@ export function UserDetailView({ userId }: { userId: string }) {
               >
                 <div className="min-w-0">
                   <Link href={`/admin/biolinks?q=${biolink.slug}`} className="text-sm font-medium hover:text-accent">
-                    astra.is-a.dev/{biolink.slug}
+                    astraa.is-cool.dev/{biolink.slug}
                   </Link>
                   <p className="mt-0.5 text-xs text-content-muted">
                     {biolink._count.links} liens · {biolink._count.blocks} blocks · {biolink.uniqueViews}{" "}
@@ -561,7 +561,7 @@ export function UserDetailView({ userId }: { userId: string }) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-medium">
                       <Link href={`/admin/biolinks?q=${suspension.biolink.slug}`} className="hover:text-accent">
-                        astra.is-a.dev/{suspension.biolink.slug}
+                        astraa.is-cool.dev/{suspension.biolink.slug}
                       </Link>
                       <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyle}`}>{statusLabel}</span>
                     </p>
@@ -623,7 +623,7 @@ export function UserDetailView({ userId }: { userId: string }) {
                   <ul className="mt-1.5 flex flex-col gap-1.5 text-xs">
                     {user.reportsAgainst.map((report) => (
                       <li key={report.id} className="rounded-lg bg-danger/10 p-2.5">
-                        <span className="font-medium">astra.is-a.dev/{report.biolink.slug}</span>
+                        <span className="font-medium">astraa.is-cool.dev/{report.biolink.slug}</span>
                         <span className="text-content-muted"> — {report.reason}</span>
                         <span className="ml-1 text-content-muted">({report.status.toLowerCase()})</span>
                       </li>
@@ -637,7 +637,7 @@ export function UserDetailView({ userId }: { userId: string }) {
                   <ul className="mt-1.5 flex flex-col gap-1.5 text-xs">
                     {user.reportsMade.map((report) => (
                       <li key={report.id} className="rounded-lg bg-surface-2 p-2.5">
-                        <span className="font-medium">astra.is-a.dev/{report.biolink.slug}</span>
+                        <span className="font-medium">astraa.is-cool.dev/{report.biolink.slug}</span>
                         <span className="text-content-muted"> — {report.reason}</span>
                       </li>
                     ))}

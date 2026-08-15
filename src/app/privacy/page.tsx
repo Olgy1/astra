@@ -44,10 +44,10 @@ export default function PrivacyPage() {
         <LegalP>
           Contact :{" "}
           <a
-            href="mailto:contact@astra.is-a.dev"
+            href="mailto:contact@astraa.is-cool.dev"
             className="font-medium text-accent transition-colors hover:text-accent-hover"
           >
-            contact@astra.is-a.dev
+            contact@astraa.is-cool.dev
           </a>
         </LegalP>
       </LegalSection>
@@ -244,10 +244,10 @@ export default function PrivacyPage() {
           compte ») : vos pages, liens, médias et statistiques sont alors effacés. Pour
           exercer tout autre droit, écrivez à{" "}
           <a
-            href="mailto:contact@astra.is-a.dev"
+            href="mailto:contact@astraa.is-cool.dev"
             className="font-medium text-accent transition-colors hover:text-accent-hover"
           >
-            contact@astra.is-a.dev
+            contact@astraa.is-cool.dev
           </a>
           ; une réponse vous sera apportée dans un délai raisonnable. Si vous estimez que
           vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de

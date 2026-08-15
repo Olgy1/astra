@@ -131,7 +131,7 @@ export function ReportsView() {
 
   /** Lève la suspension d'une page avant son terme (email au propriétaire). */
   const unsuspend = async (biolinkId: string, slug: string) => {
-    if (!window.confirm(`Lever la suspension de la page astra.is-a.dev/${slug} ? Le propriétaire sera prévenu par email.`)) return;
+    if (!window.confirm(`Lever la suspension de la page astraa.is-cool.dev/${slug} ? Le propriétaire sera prévenu par email.`)) return;
     setBusy(`unsuspend:${biolinkId}`);
     setError(null);
     setNotice(null);
@@ -147,7 +147,7 @@ export function ReportsView() {
 
   /** Supprime le signalement (abusif, doublon, nettoyage). */
   const remove = async (reportId: string, slug: string) => {
-    if (!window.confirm(`Supprimer ce signalement de la page astra.is-a.dev/${slug} ?`)) return;
+    if (!window.confirm(`Supprimer ce signalement de la page astraa.is-cool.dev/${slug} ?`)) return;
     setBusy(reportId);
     setError(null);
     setNotice(null);
@@ -234,7 +234,7 @@ export function ReportsView() {
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
                   <Link href={`/${report.biolink.slug}`} target="_blank" className="font-medium hover:text-accent">
-                    astra.is-a.dev/{report.biolink.slug}
+                    astraa.is-cool.dev/{report.biolink.slug}
                   </Link>
                   <span className="text-xs text-content-muted">
                     par <Link href={`/admin/users/${report.biolink.owner.id}`} className="hover:text-accent">{report.biolink.owner.username}</Link>

@@ -323,7 +323,7 @@ export const DELETE = withErrorHandling(async (_request: Request, context: Conte
   }
 
   return ok({
-    message: `La page astra.is-a.dev/${biolink.slug} a été supprimée.`,
+    message: `La page astraa.is-cool.dev/${biolink.slug} a été supprimée.`,
     deletedAssets: assets.length,
   });
 });

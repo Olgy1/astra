@@ -33,7 +33,7 @@ export default function LegalPage() {
         <LegalIntro>
           Dernière mise à jour : 15 août 2026. Ces mentions décrivent l&apos;édition
           du service <span className="text-content-primary">Astra</span>, accessible à
-          l&apos;adresse <span className="font-mono">https://astra.is-a.dev</span>.
+          l&apos;adresse <span className="font-mono">https://astraa.is-cool.dev</span>.
         </LegalIntro>
       </div>
 
@@ -55,10 +55,10 @@ export default function LegalPage() {
         <LegalP>
           Adresse de contact public :{" "}
           <a
-            href="mailto:contact@astra.is-a.dev"
+            href="mailto:contact@astraa.is-cool.dev"
             className="font-medium text-accent transition-colors hover:text-accent-hover"
           >
-            contact@astra.is-a.dev
+            contact@astraa.is-cool.dev
           </a>
         </LegalP>
       </LegalSection>
@@ -96,10 +96,10 @@ export default function LegalPage() {
           LCEN, les demandes concernant le contenu publié (notamment les demandes de droit
           de réponse ou de retrait) peuvent être adressées à l&apos;éditeur à l&apos;adresse{" "}
           <a
-            href="mailto:contact@astra.is-a.dev"
+            href="mailto:contact@astraa.is-cool.dev"
             className="font-medium text-accent transition-colors hover:text-accent-hover"
           >
-            contact@astra.is-a.dev
+            contact@astraa.is-cool.dev
           </a>
           .
         </LegalP>
@@ -108,7 +108,7 @@ export default function LegalPage() {
       <LegalSection title="Signalement de contenus">
         <LegalP>
           Chaque page publie un bouton « Signaler » qui mène à un formulaire de
-          signalement (<span className="font-mono">astra.is-a.dev/[adresse]/report</span>).
+          signalement (<span className="font-mono">astraa.is-cool.dev/[adresse]/report</span>).
           Tout visiteur peut signaler une page (spam, harcèlement, contenu illégal,
           usurpation, autre), avec un commentaire facultatif.
         </LegalP>
@@ -155,10 +155,10 @@ export default function LegalPage() {
           . Pour exercer vos droits (accès, rectification, effacement, portabilité…),
           écrivez à{" "}
           <a
-            href="mailto:contact@astra.is-a.dev"
+            href="mailto:contact@astraa.is-cool.dev"
             className="font-medium text-accent transition-colors hover:text-accent-hover"
           >
-            contact@astra.is-a.dev
+            contact@astraa.is-cool.dev
           </a>
           .
         </LegalP>

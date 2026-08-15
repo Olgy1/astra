@@ -239,7 +239,7 @@ async function createUserFromDiscord(profile: {
           // la considérer comme confirmée d'emblée. Sans email (cas rare),
           // on pose un placeholder que l'utilisateur remplacera dans ses
           // paramètres — ce qui déclenchera une vraie vérification.
-          email: profile.email ?? `discord_${profile.id}@placeholder.astra.is-a.dev`,
+          email: profile.email ?? `discord_${profile.id}@placeholder.astraa.is-cool.dev`,
           passwordHash: null,
           emailVerified: Boolean(profile.email),
           discordId: profile.id,

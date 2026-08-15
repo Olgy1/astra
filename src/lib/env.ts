@@ -68,7 +68,7 @@ const serverSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM: z.string().default("Astra <noreply@astra.is-a.dev>"),
+  SMTP_FROM: z.string().default("Astra <noreply@astraa.is-cool.dev>"),
 
   DISCORD_CLIENT_ID: z.string().optional(),
   DISCORD_CLIENT_SECRET: z.string().optional(),

@@ -62,7 +62,7 @@ export function StatsView({ biolinkId, slug }: { biolinkId: string; slug: string
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-content-muted">
-          Statistiques de <span className="font-medium text-content-primary">astra.is-a.dev/{slug}</span>
+          Statistiques de <span className="font-medium text-content-primary">astraa.is-cool.dev/{slug}</span>
         </p>
         <div className="flex rounded-lg border border-border-subtle bg-surface-1 p-0.5">
           {RANGES.map((option) => (
