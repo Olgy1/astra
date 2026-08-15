@@ -67,8 +67,13 @@ export function ReportButton({ slug }: { slug: string }) {
           plateforme, comme le pied de page. */}
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full right-0 z-10 mb-2 whitespace-nowrap rounded-md bg-black/85 px-2 py-0.5 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
-        style={{ fontFamily: "var(--font-sans)" }}
+        className="pointer-events-none absolute bottom-full right-0 z-10 mb-2 whitespace-nowrap rounded-full border border-transparent px-3 py-1 text-[11px] font-medium opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+        style={{
+          fontFamily: "var(--font-sans)",
+          color: "var(--page-text)",
+          backgroundColor: "color-mix(in oklab, var(--card-bg) calc(var(--card-opacity) * 100%), transparent)",
+          backdropFilter: "blur(var(--card-blur))",
+        }}
       >
         Signaler
       </span>

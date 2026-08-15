@@ -73,7 +73,7 @@ export function BlocksPanel() {
   const labelOf = (type: string) => catalog.find((c) => c.type === type)?.label ?? type;
 
   return (
-    <div className="flex flex-col gap-3 py-4">
+    <div className="flex flex-col gap-3">
       <ul className="flex flex-col gap-2">
         {biolink.blocks.map((block) => (
           <li

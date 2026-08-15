@@ -92,10 +92,9 @@ export const POST = withErrorHandling(async (request: Request) => {
       await tx.block.createMany({
         data: [
           { biolinkId: created.id, type: "avatar", config: defaultBlockConfig("avatar") as Prisma.InputJsonValue, position: 0 },
-          { biolinkId: created.id, type: "badges", config: defaultBlockConfig("badges") as Prisma.InputJsonValue, position: 1 },
-          { biolinkId: created.id, type: "header", config: defaultBlockConfig("header") as Prisma.InputJsonValue, position: 2 },
-          { biolinkId: created.id, type: "socials", config: defaultBlockConfig("socials") as Prisma.InputJsonValue, position: 3 },
-          { biolinkId: created.id, type: "links", config: defaultBlockConfig("links") as Prisma.InputJsonValue, position: 4 },
+          { biolinkId: created.id, type: "header", config: defaultBlockConfig("header") as Prisma.InputJsonValue, position: 1 },
+          { biolinkId: created.id, type: "socials", config: defaultBlockConfig("socials") as Prisma.InputJsonValue, position: 2 },
+          { biolinkId: created.id, type: "links", config: defaultBlockConfig("links") as Prisma.InputJsonValue, position: 3 },
         ],
       });
 

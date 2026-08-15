@@ -23,6 +23,17 @@ export function signalEntered(): void {
   for (const listener of listeners) listener();
 }
 
+/**
+ * Remet le signal à zéro.
+ *
+ * Utilisé en quittant la page de signalement : la page bio rechargée doit se
+ * comporter comme une première visite (écran d'entrée, vidéo depuis le début)
+ * plutôt que de reprendre le signal déjà émis par la session précédente.
+ */
+export function resetEntered(): void {
+  fired = false;
+}
+
 /** S'abonne au signal. Si le signal a déjà été donné, exécute immédiatement. */
 export function onEntered(listener: () => void): () => void {
   if (fired) {

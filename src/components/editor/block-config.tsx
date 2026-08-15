@@ -9,8 +9,23 @@ import {
   ToggleControl,
 } from "@/components/editor/controls";
 import { SOCIAL_PLATFORMS } from "@/lib/blocks/definitions/socials";
-import { SOCIAL_META } from "@/lib/socials";
+import { HEADER_SIZES } from "@/lib/blocks/definitions/header";
+import { SOCIAL_META, detectPlatformFromUrl } from "@/lib/socials";
+import { TEXT_ANIMATIONS, TEXT_ANIMATION_LABELS } from "@/lib/text-animations";
 import { fontChoices } from "@/lib/theme/fonts";
+import { displayNameFromFileName } from "@/lib/theme/font-name";
+import { MediaUpload } from "@/components/editor/media-upload";
+
+/** Libellés des tailles du block En-tête. */
+const HEADER_SIZE_LABELS: Record<(typeof HEADER_SIZES)[number], string> = {
+  xs: "Très petite",
+  sm: "Petite",
+  md: "Normale",
+  lg: "Grande",
+  xl: "Très grande",
+  "2xl": "Extra grande",
+  "3xl": "Énorme",
+};
 
 /**
  * Édition de la configuration d'un block.
@@ -48,7 +63,6 @@ export function BlockConfigForm({ block }: { block: EditorBlock }) {
       </p>
 
       {block.type === "avatar" && <AvatarForm config={config} setField={setField} />}
-      {block.type === "badges" && <BadgesForm config={config} setField={setField} />}
       {block.type === "header" && (
         <HeaderForm config={config} update={update} discordUsername={biolink.owner.discordUsername} />
       )}
@@ -62,7 +76,6 @@ export function BlockConfigForm({ block }: { block: EditorBlock }) {
       {block.type === "spotify" && <SpotifyForm config={config} setField={setField} />}
       {block.type === "reddit" && <RedditForm config={config} setField={setField} />}
       {block.type === "discord_server" && <DiscordServerForm config={config} setField={setField} />}
-      {block.type === "visit_counter" && <VisitCounterForm config={config} setField={setField} />}
       {block.type === "countdown" && <CountdownForm config={config} setField={setField} />}
     </div>
   );
@@ -128,19 +141,26 @@ function FontField({
   value,
   onChange,
   inheritAsUndefined = true,
+  customFontUrl,
+  customFontName,
 }: {
   label?: string;
   value: string | undefined;
   onChange: (value: string | undefined) => void;
   /** « Police de la page » : écrire undefined (défaut) ou la chaîne « inherit ». */
   inheritAsUndefined?: boolean;
+  /** Police custom propre au block (ex. En-tête) ; sinon la globale. */
+  customFontUrl?: string;
+  customFontName?: string;
 }) {
   const { biolink } = useEditor();
-  const customFontUrl = biolink.theme.typography.customFontUrl;
+  // La police custom d'un block passe avant celle (héritée) du thème.
+  const url = customFontUrl ?? biolink.theme.typography.customFontUrl;
+  const name = customFontName ?? biolink.theme.typography.customFontName;
   const current = value && value !== "inherit" ? value : "inherit";
   const options: { value: string; label: string }[] = [
     { value: "inherit", label: "Police de la page" },
-    ...fontChoices(customFontUrl),
+    ...fontChoices(url, name),
   ];
 
   return (
@@ -176,23 +196,7 @@ function AvatarForm({ config, setField }: { config: Config; setField: (k: string
       <Field label="Émoji du statut" value={str(config, "statusEmoji")} maxLength={8} placeholder="🟢" onChange={(v) => setField("statusEmoji", v || undefined)} />
       <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
       <p className="text-xs text-content-muted">
-        Les badges (vérifié, admin…) sont attribués par la plateforme : ajoutez le
-        block « Badges » pour les afficher.
-      </p>
-    </>
-  );
-}
-
-function BadgesForm({ config, setField }: { config: Config; setField: (k: string, v: unknown) => void }) {
-  return (
-    <>
-      <SelectControl label="Style" value={str(config, "style", "filled") as "filled" | "outlined"} options={[{ value: "filled", label: "Plein" }, { value: "outlined", label: "Contour" }]} onChange={(v) => setField("style", v)} />
-      <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
-      <p className="text-xs text-content-muted">
-        Les badges sont affichés en icône seule : le nom apparaît au survol.
-        Ils sont attribués par les administrateurs de la plateforme (vérifié,
-        admin…) — ce block ne fait que les afficher : retirez-le pour les
-        masquer sur cette page.
+        Les badges (vérifié, admin…) ne sont plus affichés sur les pages.
       </p>
     </>
   );
@@ -207,13 +211,20 @@ function HeaderForm({
   update: (p: Config) => void;
   discordUsername: string | null;
 }) {
-  const badges = Array.isArray(config.badges) ? (config.badges as { label?: string; color?: string; icon?: string }[]) : [];
+  const bioAnimation = str(config, "bioAnimation", "none");
+  const zoneFontProps = {
+    inheritAsUndefined: false,
+    customFontUrl: str(config, "customFontUrl") || undefined,
+    customFontName: str(config, "customFontName") || undefined,
+  };
 
   return (
     <>
+      {/* ── Titre ── */}
+      <p className="text-xs font-semibold uppercase tracking-wider text-content-muted">Titre</p>
       <div className="flex items-end gap-2">
         <div className="min-w-0 flex-1">
-          <Field label="Titre" value={str(config, "title")} placeholder="Votre nom" onChange={(v) => update({ title: v || undefined })} hint="Vide = le titre de la page." />
+          <Field label="Texte" value={str(config, "title")} placeholder="Votre nom" onChange={(v) => update({ title: v || undefined })} hint="Vide = le titre de la page." />
         </div>
         {discordUsername && (
           <button
@@ -226,8 +237,69 @@ function HeaderForm({
           </button>
         )}
       </div>
-      <Field label="Sous-titre" value={str(config, "subtitle")} placeholder="petite phrase" onChange={(v) => update({ subtitle: v || undefined })} />
-      <TextAreaControl label="Bio" value={str(config, "bio")} rows={3} maxLength={500} onChange={(v) => update({ bio: v || undefined })} />
+      <SelectControl
+        label="Taille"
+        value={str(config, "titleSize", "2xl") as (typeof HEADER_SIZES)[number]}
+        options={HEADER_SIZES.map((size) => ({ value: size, label: HEADER_SIZE_LABELS[size] }))}
+        onChange={(v) => update({ titleSize: v })}
+      />
+      <FontField
+        label="Police"
+        value={zoneFontValue(config, "titleFontFamily")}
+        {...zoneFontProps}
+        onChange={(v) => update({ titleFontFamily: v })}
+      />
+
+      {/* ── Sous-titre ── */}
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-content-muted">Sous-titre</p>
+      <Field label="Texte" value={str(config, "subtitle")} placeholder="petite phrase" onChange={(v) => update({ subtitle: v || undefined })} />
+      <SelectControl
+        label="Taille"
+        value={str(config, "subtitleSize", "sm") as (typeof HEADER_SIZES)[number]}
+        options={HEADER_SIZES.map((size) => ({ value: size, label: HEADER_SIZE_LABELS[size] }))}
+        onChange={(v) => update({ subtitleSize: v })}
+      />
+      <FontField
+        label="Police"
+        value={zoneFontValue(config, "subtitleFontFamily")}
+        {...zoneFontProps}
+        onChange={(v) => update({ subtitleFontFamily: v })}
+      />
+
+      {/* ── Bio ── */}
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-content-muted">Bio</p>
+      <TextAreaControl label="Texte" value={str(config, "bio")} rows={3} maxLength={500} onChange={(v) => update({ bio: v || undefined })} />
+      <SelectControl
+        label="Taille"
+        value={str(config, "bioSize", "sm") as (typeof HEADER_SIZES)[number]}
+        options={HEADER_SIZES.map((size) => ({ value: size, label: HEADER_SIZE_LABELS[size] }))}
+        onChange={(v) => update({ bioSize: v })}
+      />
+      <FontField
+        label="Police"
+        value={zoneFontValue(config, "bioFontFamily")}
+        {...zoneFontProps}
+        onChange={(v) => update({ bioFontFamily: v })}
+      />
+      <SelectControl
+        label="Animation"
+        value={bioAnimation}
+        options={TEXT_ANIMATIONS.map((animation) => ({ value: animation, label: TEXT_ANIMATION_LABELS[animation] }))}
+        onChange={(v) => update({ bioAnimation: v })}
+      />
+      {bioAnimation !== "none" && (
+        <SliderControl
+          label="Vitesse de l'animation"
+          value={num(config, "bioAnimationSpeed", 80)}
+          min={20}
+          max={500}
+          unit="ms"
+          onChange={(v) => update({ bioAnimationSpeed: v })}
+        />
+      )}
+
+      {/* ── Options ── */}
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-content-muted">Options</p>
       <ToggleControl
         label="Bio avant le sous-titre"
         description="Par défaut le sous-titre s'affiche au-dessus de la bio ; activez pour inverser."
@@ -235,69 +307,21 @@ function HeaderForm({
         onChange={(v) => update({ bioBeforeSubtitle: v })}
       />
       <ToggleControl label="Afficher @pseudo" checked={bool(config, "showUsername", true)} onChange={(v) => update({ showUsername: v })} />
+      <FontField label="Police par défaut (toutes les zones)" value={str(config, "fontFamily") || undefined} onChange={(v) => update({ fontFamily: v })} />
 
-      <FontField label="Police par défaut" value={str(config, "fontFamily") || undefined} onChange={(v) => update({ fontFamily: v })} />
-      <FontField
-        label="Police du titre"
-        value={zoneFontValue(config, "titleFontFamily")}
-        inheritAsUndefined={false}
-        onChange={(v) => update({ titleFontFamily: v })}
+      {/* Police custom, réservée au block En-tête : choisir « Personnalisée »
+          dans les sélecteurs de police ci-dessus l'applique au pseudo. */}
+      <MediaUpload
+        type="FONT"
+        currentUrl={str(config, "customFontUrl") || undefined}
+        onUploaded={(asset, fileName) =>
+          update({
+            customFontUrl: asset.url,
+            customFontName: displayNameFromFileName(fileName),
+          })
+        }
+        onCleared={() => update({ customFontUrl: undefined, customFontName: undefined })}
       />
-      <FontField
-        label="Police du sous-titre"
-        value={zoneFontValue(config, "subtitleFontFamily")}
-        inheritAsUndefined={false}
-        onChange={(v) => update({ subtitleFontFamily: v })}
-      />
-      <FontField
-        label="Police de la bio"
-        value={zoneFontValue(config, "bioFontFamily")}
-        inheritAsUndefined={false}
-        onChange={(v) => update({ bioFontFamily: v })}
-      />
-
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-content-secondary">Badges</p>
-        {badges.map((badge, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <input
-              value={badge.label ?? ""}
-              onChange={(event) => {
-                const next = [...badges];
-                next[index] = { ...next[index], label: event.target.value };
-                update({ badges: next });
-              }}
-              placeholder="Libellé"
-              className="w-full rounded-lg border border-border-subtle bg-surface-1 px-2 py-1 text-xs outline-none focus:border-accent"
-            />
-            <input
-              type="color"
-              value={badge.color ?? "#8b5cf6"}
-              onChange={(event) => {
-                const next = [...badges];
-                next[index] = { ...next[index], color: event.target.value };
-                update({ badges: next });
-              }}
-              className="size-7 shrink-0 cursor-pointer rounded-lg border border-border-subtle bg-transparent"
-            />
-            <button
-              type="button"
-              onClick={() => update({ badges: badges.filter((_, i) => i !== index) })}
-              className="shrink-0 text-content-muted transition-colors hover:text-danger"
-              aria-label="Retirer le badge"
-            >
-              <svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => update({ badges: [...badges, { label: "Nouveau", color: "#8b5cf6" }] })}
-          className="self-start rounded-lg border border-border-subtle bg-surface-2 px-3 py-1.5 text-xs font-medium transition-colors hover:border-accent"
-        >
-          + Ajouter un badge
-        </button>
-      </div>
     </>
   );
 }
@@ -311,6 +335,28 @@ function TextForm({ config, setField }: { config: Config; setField: (k: string, 
       <ToggleControl label="Couleur d'accent" checked={bool(config, "useAccentColor")} onChange={(v) => setField("useAccentColor", v)} />
       <ToggleControl label="Gras" checked={bool(config, "bold")} onChange={(v) => setField("bold", v)} />
       <ToggleControl label="Italique" checked={bool(config, "italic")} onChange={(v) => setField("italic", v)} />
+      <SelectControl
+        label="Animation"
+        value={str(config, "animation", "none")}
+        options={TEXT_ANIMATIONS.map((animation) => ({ value: animation, label: TEXT_ANIMATION_LABELS[animation] }))}
+        onChange={(v) => setField("animation", v)}
+      />
+      {str(config, "animation", "none") !== "none" && (
+        <>
+          <SliderControl
+            label="Vitesse de l'animation"
+            value={num(config, "animationSpeed", 80)}
+            min={20}
+            max={500}
+            unit="ms"
+            onChange={(v) => setField("animationSpeed", v)}
+          />
+          <p className="text-xs text-content-muted">
+            Avec une animation, le texte est affiché brut : la mise en forme markdown (gras, italique…)
+            n&apos;est pas appliquée.
+          </p>
+        </>
+      )}
       <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
     </>
   );
@@ -402,29 +448,35 @@ function SocialsForm({ config, update }: { config: Config; update: (p: Config) =
         )}
         {entries.map((entry, index) => (
           <div key={index} className="flex items-center gap-1.5">
-            <select
+            <SelectControl
+              ariaLabel={`Réseau ${index + 1}`}
               value={SOCIAL_PLATFORMS.includes(entry.platform as never) ? entry.platform : "website"}
-              onChange={(event) => {
+              onChange={(platform) => {
                 const next = [...entries];
-                next[index] = { ...next[index], platform: event.target.value };
+                next[index] = { ...next[index], platform };
                 update({ entries: next });
               }}
-              className="w-28 shrink-0 rounded-lg border border-border-subtle bg-surface-1 px-2 py-1.5 text-xs outline-none focus:border-accent"
-            >
-              {SOCIAL_PLATFORMS.map((platform) => (
-                <option key={platform} value={platform}>
-                  {SOCIAL_META[platform].label}
-                </option>
-              ))}
-            </select>
+              options={SOCIAL_PLATFORMS.map((platform) => ({
+                value: platform,
+                label: SOCIAL_META[platform].label,
+              }))}
+              className="w-28 shrink-0"
+            />
             <input
               value={entry.value}
               onChange={(event) => {
                 const next = [...entries];
-                next[index] = { ...next[index], value: event.target.value };
+                const value = event.target.value;
+                next[index] = { ...next[index], value };
+                // Icône logique : quand on colle une URL complète d'une
+                // plateforme connue, la sélection bascule automatiquement.
+                const detected = detectPlatformFromUrl(value);
+                if (detected && detected !== next[index].platform) {
+                  next[index] = { ...next[index], platform: detected };
+                }
                 update({ entries: next });
               }}
-              placeholder="@pseudo ou URL"
+              placeholder={SOCIAL_META[entry.platform as keyof typeof SOCIAL_META]?.valueHint ?? "Pseudo ou URL"}
               className="min-w-0 flex-1 rounded-lg border border-border-subtle bg-surface-1 px-2 py-1.5 text-xs outline-none focus:border-accent"
             />
             <button
@@ -522,18 +574,6 @@ function DiscordServerForm({ config, setField }: { config: Config; setField: (k:
     <>
       <Field label="Code d'invitation" value={str(config, "inviteCode")} placeholder="abc123" onChange={(v) => setField("inviteCode", v || undefined)} hint="Le code seul, pas l'URL complète : « discord.gg/abc123 » → « abc123 »." />
       <Field label="Texte du bouton" value={str(config, "buttonLabel", "Rejoindre")} onChange={(v) => setField("buttonLabel", v)} />
-      <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
-    </>
-  );
-}
-
-function VisitCounterForm({ config, setField }: { config: Config; setField: (k: string, v: unknown) => void }) {
-  return (
-    <>
-      <Field label="Libellé" value={str(config, "label", "vues")} onChange={(v) => setField("label", v)} />
-      <SelectControl label="Style" value={str(config, "style", "badge") as "inline" | "badge" | "card"} options={[{ value: "inline", label: "En ligne" }, { value: "badge", label: "Pastille" }, { value: "card", label: "Carte" }]} onChange={(v) => setField("style", v)} />
-      <ToggleControl label="Compte animé" checked={bool(config, "animateOnLoad", true)} onChange={(v) => setField("animateOnLoad", v)} />
-      <ToggleControl label="Notation compacte" description="1 234 567 → « 1,2 M »" checked={bool(config, "compactNotation")} onChange={(v) => setField("compactNotation", v)} />
       <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
     </>
   );

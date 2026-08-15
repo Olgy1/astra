@@ -176,7 +176,7 @@ export function RedditBlock({ config }: BlockProps<RedditBlockConfig>) {
 export function DiscordServerBlock({ config, theme }: BlockProps<DiscordServerBlockConfig>) {
   if (!config.inviteCode) return null;
 
-  const blockFont = resolveFontFamily(config.fontFamily, theme.typography.customFontUrl);
+  const blockFont = resolveFontFamily(config.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName);
 
   // Le code d'invitation est validé par regex dans le schéma du block ; on
   // reconstruit l'URL, on n'en accepte jamais une entière.

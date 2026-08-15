@@ -7,7 +7,7 @@ import type { CountdownBlockConfig } from "@/lib/blocks/definitions/countdown";
 import { resolveFontFamily } from "@/lib/theme/fonts";
 
 export function VisitCounterBlock({ config, page, theme }: BlockProps<VisitCounterBlockConfig>) {
-  const blockFont = resolveFontFamily(config.fontFamily, theme.typography.customFontUrl);
+  const blockFont = resolveFontFamily(config.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName);
   // Vues uniques, pas toutes les visites : recharger la page ne fait pas
   // grimper le compteur. Repli sur le total pour les pages en cache datant
   // d'avant l'introduction du champ.
@@ -106,7 +106,7 @@ function timeParts(targetIso: string): { d: number; h: number; m: number; s: num
 
 export function CountdownBlock({ config, theme }: BlockProps<CountdownBlockConfig>) {
   const [now, setNow] = useState<ReturnType<typeof timeParts> | null>(null);
-  const blockFont = resolveFontFamily(config.fontFamily, theme.typography.customFontUrl);
+  const blockFont = resolveFontFamily(config.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName);
 
   // Le calcul se fait côté client après le montage : le rendu serveur donne
   // une valeur figée à l'instant du rendu, qui serait fausse dès la seconde

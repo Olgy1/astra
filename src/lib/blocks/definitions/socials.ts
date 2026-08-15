@@ -23,6 +23,7 @@ export const SOCIAL_PLATFORMS = [
   "reddit",
   "pinterest",
   "linkedin",
+  "namemc",
   "email",
   "website",
 ] as const;

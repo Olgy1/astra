@@ -3,7 +3,6 @@ import type { AnyBlockDefinition, BlockCategory } from "@/lib/blocks/types";
 import { defaultConfigFor } from "@/lib/blocks/types";
 
 import { avatarBlock } from "@/lib/blocks/definitions/avatar";
-import { badgesBlock } from "@/lib/blocks/definitions/badges";
 import { countdownBlock } from "@/lib/blocks/definitions/countdown";
 import { ctaButtonBlock } from "@/lib/blocks/definitions/cta-button";
 import { discordServerBlock } from "@/lib/blocks/definitions/discord-server";
@@ -16,7 +15,6 @@ import { socialsBlock } from "@/lib/blocks/definitions/socials";
 import { spotifyBlock } from "@/lib/blocks/definitions/spotify";
 import { textBlock } from "@/lib/blocks/definitions/text";
 import { videoBlock } from "@/lib/blocks/definitions/video";
-import { visitCounterBlock } from "@/lib/blocks/definitions/visit-counter";
 
 /**
  * Registry des types de blocks.
@@ -30,10 +28,14 @@ import { visitCounterBlock } from "@/lib/blocks/definitions/visit-counter";
  * Pas de migration : `blocks.type` est un VARCHAR et `blocks.config` un
  * JSONB. C'est ce fichier, et non la base, qui définit ce qui est valide.
  */
+// Les blocks « badges » et « visit_counter » ont été retirés du catalogue :
+// les badges ne sont plus affichés sur les pages publiques, et le compteur
+// de vues vit désormais dans les coins de la carte (thème → Compteur de
+// vues). Les types restent validés pour les anciennes pages (elles sont
+// simplement rendues vides par le renderer).
 const DEFINITIONS: readonly AnyBlockDefinition[] = [
   // identity
   avatarBlock,
-  badgesBlock,
   headerBlock,
   textBlock,
   imageBlock,
@@ -48,7 +50,6 @@ const DEFINITIONS: readonly AnyBlockDefinition[] = [
   redditBlock,
   discordServerBlock,
   // widgets
-  visitCounterBlock,
   countdownBlock,
 ];
 

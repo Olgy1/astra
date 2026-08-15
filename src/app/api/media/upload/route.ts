@@ -99,27 +99,33 @@ export const POST = withErrorHandling(async (request: Request) => {
   });
 
   if (biolinkId) {
-    // Un seul média par type et par page : le nouvel upload REMPLACE
-    // l'ancien. Sans cette purge, un avatar recadré laissait en base l'image
-    // d'origine, et la page publique — qui prend le premier média du type —
-    // continuait d'afficher l'ancienne image au lieu du recadrage.
-    const previous = await prisma.mediaAsset.findMany({
-      where: { biolinkId, type, id: { not: asset.id } },
-      select: { id: true, key: true },
-    });
-
-    if (previous.length > 0) {
-      await prisma.mediaAsset.deleteMany({
-        where: { id: { in: previous.map((entry) => entry.id) } },
+    // AUDIO est désormais multi-valeurs : une page peut porter plusieurs
+    // pistes, donc plusieurs fichiers audio (une URL par piste). La purge
+    // « un seul média par type » ci-dessous supprimerait la piste 1 quand on
+    // uploade la piste 2 — exactement le bug « la première piste ne marche
+    // plus » (son fichier était effacé du stockage). Les autres types
+    // restent mono-valeurs (avatar, bannière, fond, curseur, police) et
+    // gardent la purge : un avatar recadré remplace l'ancien au lieu de
+    // laisser la page afficher l'image d'origine.
+    if (type !== "AUDIO") {
+      const previous = await prisma.mediaAsset.findMany({
+        where: { biolinkId, type, id: { not: asset.id } },
+        select: { id: true, key: true },
       });
 
-      // Le fichier d'abord supprimé en base, le stockage ensuite : le pire
-      // cas est un objet orphelin invisible, pas une page qui référence un
-      // fichier disparu. Un échec ici ne doit pas faire échouer l'upload.
-      try {
-        await deleteStoredObjects(previous.map((entry) => entry.key));
-      } catch (error) {
-        console.error("[media] purge de l'ancien média incomplète :", error);
+      if (previous.length > 0) {
+        await prisma.mediaAsset.deleteMany({
+          where: { id: { in: previous.map((entry) => entry.id) } },
+        });
+
+        // Le fichier d'abord supprimé en base, le stockage ensuite : le pire
+        // cas est un objet orphelin invisible, pas une page qui référence un
+        // fichier disparu. Un échec ici ne doit pas faire échouer l'upload.
+        try {
+          await deleteStoredObjects(previous.map((entry) => entry.key));
+        } catch (error) {
+          console.error("[media] purge de l'ancien média incomplète :", error);
+        }
       }
     }
 

@@ -1,0 +1,317 @@
+/**
+ * Polices du catalogue auto-hébergées.
+ *
+ * Les fichiers vivent dans `public/fonts/` et sont servis directement par le
+ * serveur (pas d'appel externe à l'exécution). Chaque `font-family` doit
+ * correspondre exactement à la valeur du catalogue (src/lib/theme/fonts.ts) :
+ * c'est ce nom qui est référencé dans les `font-family` des pages publiques.
+ *
+ * Attribution : « Evil Empire » est sous licence Creative Commons Attribution
+ * (by) — conçue par Tup Wanders (https://tupwanders.nl). Les autres polices
+ * sont distribuées sous licence libre (OFL, Freeware ou domaine public) via
+ * fontspace.com.
+ */
+
+@font-face {
+  font-family: "Evil Empire";
+  src: url("/fonts/evil-empire.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fonstars";
+  src: url("/fonts/fonstars.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Harry P";
+  src: url("/fonts/harry-p.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Help Me";
+  src: url("/fonts/help-me.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ichigaya Mincho";
+  src: url("/fonts/ichigaya-mincho.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ithaca";
+  src: url("/fonts/ithaca.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Jello Stone";
+  src: url("/fonts/jello-stone.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Juliette";
+  src: url("/fonts/juliette.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martius";
+  src: url("/fonts/martius.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Minecraft";
+  src: url("/fonts/minecraft.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Moogalator";
+  src: url("/fonts/moogalator.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Moonhouse";
+  src: url("/fonts/moonhouse.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Nikkyou Sans";
+  src: url("/fonts/nikkyou-sans.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Oblata Display";
+  src: url("/fonts/oblata-display.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixelated Elegance";
+  src: url("/fonts/pixelated-elegance.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Providencia";
+  src: url("/fonts/providencia.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Raster Forge";
+  src: url("/fonts/raster-forge.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RO Spritendo";
+  src: url("/fonts/ro-spritendo.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roblox";
+  src: url("/fonts/roblox.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Rusty Hooks";
+  src: url("/fonts/rusty-hooks.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sacramento";
+  src: url("/fonts/sacramento.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sparky Stones";
+  src: url("/fonts/sparky-stones.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Spongeboy";
+  src: url("/fonts/spongeboy.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Star Jedi";
+  src: url("/fonts/star-jedi.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Super Cursed";
+  src: url("/fonts/super-cursed.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Super Maples";
+  src: url("/fonts/super-maples.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Super Pencil";
+  src: url("/fonts/super-pencil.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Super Rugged";
+  src: url("/fonts/super-rugged.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Super Shake";
+  src: url("/fonts/super-shake.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Truetypewriter Polyglott";
+  src: url("/fonts/truetypewriter-polyglott.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Juliette Italic";
+  src: url("/fonts/juliette-italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martius Italic";
+  src: url("/fonts/martius-italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Minecraft Bold";
+  src: url("/fonts/minecraft-bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Minecraft Italic";
+  src: url("/fonts/minecraft-italic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Minecraft Bold Italic";
+  src: url("/fonts/minecraft-bold-italic.otf") format("opentype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Moogalator Filler";
+  src: url("/fonts/moogalator-filler.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Star Jedi Hollow";
+  src: url("/fonts/star-jedi-hollow.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Star Jedi Rounded";
+  src: url("/fonts/star-jedi-rounded.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

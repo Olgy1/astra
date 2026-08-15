@@ -42,7 +42,7 @@ export function BadgesBlock({ config, page, theme }: BlockProps<BadgesBlockConfi
   return (
     <ul
       className="flex flex-wrap items-center justify-center gap-1.5"
-      style={{ fontFamily: resolveFontFamily(config.fontFamily, theme.typography.customFontUrl) }}
+      style={{ fontFamily: resolveFontFamily(config.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName) }}
     >
       {visible.map((badge) => {
         const meta = BADGE_BY_KEY[badge];

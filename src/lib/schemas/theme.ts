@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TEXT_ANIMATIONS } from "@/lib/text-animations";
 
 /**
  * Forme de `Biolink.themeConfig`.
@@ -79,6 +80,14 @@ export const typographySchema = z.object({
   /** Nom d'une police du catalogue, ou "custom" si `customFontUrl` est posé. */
   fontFamily: z.string().max(64).default("Inter"),
   customFontUrl: mediaUrl.optional(),
+  /**
+   * Nom d'affichage de la police custom, dérivé du nom du fichier uploadé
+   * (ex. « PixelRounded » pour pixel-rounded.ttf). Sert de famille CSS et de
+   * libellé dans les sélecteurs — plusieurs polices custom peuvent coexister
+   * sans se confondre. Absent sur les pages créées avant ce champ : le nom
+   * est alors dérivé de l'URL à la lecture.
+   */
+  customFontName: z.string().max(64).optional(),
   textColor: hexColor.default("#ffffff"),
   accentColor: hexColor.default("#8b5cf6"),
   mutedColor: hexColor.default("#a1a1aa"),
@@ -146,9 +155,7 @@ export const effectsSchema = z.object({
     })
     .default({}),
 
-  titleAnimation: z
-    .enum(["none", "typewriter", "glitch", "fade", "sparkle", "wave"])
-    .default("none"),
+  titleAnimation: z.enum(TEXT_ANIMATIONS).default("none"),
   /** Vitesse de l'animation de titre, en millisecondes par caractère. */
   titleAnimationSpeed: z.number().min(20).max(500).default(80),
 
@@ -156,14 +163,26 @@ export const effectsSchema = z.object({
   entranceAnimation: z.enum(["none", "fade", "slide-up", "zoom"]).default("fade"),
 
   /**
-   * Animation du titre de l'onglet (document.title), en machine à écrire.
+   * Animation du titre de l'onglet (document.title).
    * Distincte de `titleAnimation`, qui anime le titre à l'intérieur de la
    * page : l'onglet est un endroit à part, animer les deux en même temps
    * n'aurait aucun sens.
    */
   tabTitleTypewriter: z.boolean().default(false),
+  /**
+   * Style de l'animation de l'onglet : "typewriter" (machine à écrire,
+   * tapé puis effacé en boucle) ou "marquee" (défilement horizontal
+   * continu et sans coupure : le texte boucle sur lui-même, comme un
+   * bandeau défilant).
+   */
+  tabTitleStyle: z.enum(["typewriter", "marquee"]).default("typewriter"),
+  /**
+   * Sens du défilement quand le style est "marquee" : vers la gauche
+   * (défaut, le texte entre par la droite) ou vers la droite.
+   */
+  tabTitleDirection: z.enum(["left", "right"]).default("left"),
   /** Vitesse de l'animation de l'onglet, en millisecondes par caractère. */
-  tabTitleSpeed: z.number().min(20).max(300).default(80),
+  tabTitleSpeed: z.number().min(1).max(300).default(80),
 });
 
 export const cursorSchema = z.object({
@@ -176,15 +195,53 @@ export const cursorSchema = z.object({
   /** Traînée de particules suivant le curseur. */
   trailEnabled: z.boolean().default(false),
   trailColor: hexColor.default("#8b5cf6"),
-  /** Forme des particules de la traînée. */
-  trailKind: z.enum(["circles", "stars", "squares", "astra"]).default("circles"),
+  /**
+   * Type de traînée. Les valeurs historiques (circles, squares, astra) sont
+   * conservées pour ne pas invalider les thèmes existants : elles sont
+   * simplement traduites vers les nouveaux effets au rendu.
+   */
+  trailKind: z
+    .enum(["sparkles", "stars", "snow", "dust", "bubbles", "circles", "squares", "astra"])
+    .default("sparkles"),
 });
 
 export const audioSchema = z.object({
   enabled: z.boolean().default(false),
+  /** URL de la première piste, pour compatibilité avec les pages créées
+   * avant l'arrivée de `tracks`. À la lecture, `url` et `tracks` sont
+   * fusionnés : `url` devient la piste 0 si `tracks` est vide. */
   url: mediaUrl.optional(),
+  /**
+   * Plusieurs musiques d'ambiance, jouées par le lecteur de la page
+   * (titre, progression, piste suivante/précédente). `url` est conservé
+   * pour les pages existantes ; les nouvelles pistes vivent ici.
+   */
+  tracks: z
+    .array(
+      z.object({
+        title: z.string().max(120).optional(),
+        // Chaîne vide autorisée : l'éditeur insère une ligne « piste » avant
+        // que le fichier soit uploadé. Les pistes vides sont ignorées au
+        // rendu (lecteur, contrôle de volume). Non vide, l'URL doit être
+        // http(s) — jamais javascript: ou data:.
+        url: z
+          .string()
+          .refine(
+            (value) => value === "" || /^https?:\/\//i.test(value),
+            "Seules les URL http(s) sont acceptées."
+          ),
+      })
+    )
+    .max(50, "Cinquante pistes maximum.")
+    .default([]),
   volume: z.number().min(0).max(1).default(0.5),
   loop: z.boolean().default(true),
+  /**
+   * Emplacement du lecteur de musique : "card" l'intègre dans la carte
+   * (après les blocks), "below" l'affiche comme un bloc séparé juste en
+   * dessous de la carte.
+   */
+  placement: z.enum(["card", "below"]).default("below"),
   /**
    * "autoplay" est une intention, pas une garantie : tous les navigateurs
    * bloquent la lecture audio non muette avant une interaction. Le renderer
@@ -221,6 +278,27 @@ export const themeConfigSchema = z.object({
       maxWidth: z.number().min(320).max(768).default(480),
       align: z.enum(["center", "left"]).default("center"),
       spacing: z.number().min(4).max(32).default(12),
+    })
+    .default({}),
+  /**
+   * Compteur de vues intégré à la carte, dans un des quatre coins.
+   * Toujours affiché : ce n'est plus une option, c'est une partie fixe de la
+   * page (comme le bouton « Signaler »). Seul son coin se règle.
+   */
+  viewCounter: z
+    .object({
+      /** Coin (ou bas, centré) où s'affiche la pastille. */
+      position: z
+        .enum(["top-left", "top-right", "bottom-left", "bottom-right", "bottom-center"])
+        .default("bottom-right"),
+      /** Notation compacte (1 234 567 → « 1,2 M »). */
+      compact: z.boolean().default(false),
+      /**
+       * Police de la pastille. "inherit" (défaut) suit la police globale de
+       * la page ; une valeur du catalogue ou "custom" applique une police
+       * dédiée, comme pour l'écran d'entrée.
+       */
+      fontFamily: z.string().max(64).default("inherit"),
     })
     .default({}),
 });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/ui/logo";
+import { LegalFooter } from "@/components/legal/legal-shell";
 import { listBlockDefinitions } from "@/lib/blocks/registry";
 
 /**
@@ -48,8 +49,8 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-6 max-w-lg text-pretty text-lg text-content-secondary">
-            Avatar, bannière, musique d&apos;ambiance, effets visuels. Votre page,
-            à votre image, en deux minutes.
+            Votre page, à votre image, en deux minutes. 43 polices intégrées,
+            animations de texte, musique, effets visuels et bien plus…
           </p>
 
           <div className="mt-10 flex w-full max-w-xl flex-col gap-3 sm:flex-row">
@@ -81,6 +82,28 @@ export default function HomePage() {
 
         <section className="pb-24">
           <h2 className="mb-8 text-center text-sm font-medium uppercase tracking-widest text-content-muted">
+            Une page, mille possibilités
+          </h2>
+
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { title: "Polices & typographie", desc: "43 polices intégrées, upload d'une police personnalisée, taille et police réglables par zone (titre, sous-titre, bio)." },
+              { title: "Animations", desc: "Titre, bio et onglet animés : machine à écrire, glitch, vague, défilement, scintillement…" },
+              { title: "Musique", desc: "Lecteur multi-pistes intégré à la carte, lecture auto, volume, piste suivante / précédente." },
+              { title: "Arrière-plans", desc: "Dégradé, image ou vidéo de fond, avec flou et assombrissement réglables." },
+              { title: "Effets visuels", desc: "Particules, traînée de curseur, inclinaison 3D de la carte, écran d'entrée." },
+              { title: "Statistiques", desc: "Compteur de vues intégré à la carte et tableau de bord de statistiques." },
+            ].map((feature) => (
+              <li key={feature.title} className="rounded-xl border border-border-subtle bg-surface-1 p-4">
+                <p className="text-sm font-medium">{feature.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-content-muted">{feature.desc}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="pb-24">
+          <h2 className="mb-8 text-center text-sm font-medium uppercase tracking-widest text-content-muted">
             {blocks.length} blocks à assembler
           </h2>
 
@@ -99,9 +122,7 @@ export default function HomePage() {
           </ul>
         </section>
 
-        <footer className="border-t border-border-subtle py-8 text-center text-xs text-content-muted">
-          <p>© {new Date().getFullYear()} Astra</p>
-        </footer>
+        <LegalFooter />
       </div>
     </main>
   );

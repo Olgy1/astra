@@ -55,7 +55,7 @@ export function LinksPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-3 py-4">
+    <div className="flex flex-col gap-3">
       <ul className="flex flex-col gap-2">
         {biolink.links.map((link) => (
           <li
@@ -90,7 +90,7 @@ export function LinksPanel() {
                   value={link.icon ?? ""}
                   onChange={(event) => handleUpdate(link.id, { icon: event.target.value || null })}
                   className="w-full truncate rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-xs outline-none focus:border-accent"
-                  placeholder="émoji 🎮 ou URL d'image"
+                  placeholder="vide = icône auto selon l'URL"
                   aria-label="Icône du lien (émoji ou URL)"
                 />
               </div>

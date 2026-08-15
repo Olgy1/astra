@@ -1,7 +1,7 @@
-import { AnimatedTitle } from "@/components/public/animated-title";
+import { AnimatedText } from "@/components/public/animated-text";
 import type { BlockProps } from "@/components/blocks/types";
 import type { AvatarBlockConfig } from "@/lib/blocks/definitions/avatar";
-import type { HeaderBlockConfig } from "@/lib/blocks/definitions/header";
+import type { HeaderBlockConfig, HeaderSize } from "@/lib/blocks/definitions/header";
 import type { TextBlockConfig } from "@/lib/blocks/definitions/text";
 import type { ImageBlockConfig } from "@/lib/blocks/definitions/image";
 import type { DividerBlockConfig } from "@/lib/blocks/definitions/divider";
@@ -64,7 +64,7 @@ export function AvatarBlock({ config, page, theme }: BlockProps<AvatarBlockConfi
       {config.statusText && (
         <p
           className="text-xs text-[var(--page-muted)]"
-          style={{ fontFamily: resolveFontFamily(config.fontFamily, theme.typography.customFontUrl) }}
+          style={{ fontFamily: resolveFontFamily(config.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName) }}
         >
           {config.statusEmoji && <span className="mr-1">{config.statusEmoji}</span>}
           {config.statusText}
@@ -73,6 +73,16 @@ export function AvatarBlock({ config, page, theme }: BlockProps<AvatarBlockConfi
     </div>
   );
 }
+
+const HEADER_SIZE_CLASSES: Record<HeaderSize, string> = {
+  xs: "text-xs",
+  sm: "text-sm",
+  md: "text-base",
+  lg: "text-lg",
+  xl: "text-xl",
+  "2xl": "text-2xl",
+  "3xl": "text-3xl",
+};
 
 export function HeaderBlock({ config, page, theme }: BlockProps<HeaderBlockConfig>) {
   const title = config.title ?? page.title ?? page.owner.username;
@@ -92,21 +102,27 @@ export function HeaderBlock({ config, page, theme }: BlockProps<HeaderBlockConfi
   // règlent indépendamment. Chacune retombe sur la police par défaut du
   // block (fontFamily), puis sur la police globale de la page. « inherit »
   // explicite sur une zone = police de la page, même si le block en a une.
-  const titleFont = resolveFontFamily(config.titleFontFamily ?? config.fontFamily, theme.typography.customFontUrl);
-  const subtitleFont = resolveFontFamily(config.subtitleFontFamily ?? config.fontFamily, theme.typography.customFontUrl);
-  const bioFont = resolveFontFamily(config.bioFontFamily ?? config.fontFamily, theme.typography.customFontUrl);
+  // La police custom est propre au block En-tête (plus d'upload global).
+  const titleFont = resolveFontFamily(config.titleFontFamily ?? config.fontFamily, config.customFontUrl, config.customFontName);
+  const subtitleFont = resolveFontFamily(config.subtitleFontFamily ?? config.fontFamily, config.customFontUrl, config.customFontName);
+  const bioFont = resolveFontFamily(config.bioFontFamily ?? config.fontFamily, config.customFontUrl, config.customFontName);
+
+  // Tailles par zone, réglables séparément dans l'éditeur.
+  const titleSizeClass = HEADER_SIZE_CLASSES[config.titleSize ?? "2xl"];
+  const subtitleSizeClass = HEADER_SIZE_CLASSES[config.subtitleSize ?? "sm"];
+  const bioSizeClass = HEADER_SIZE_CLASSES[config.bioSize ?? "sm"];
 
   return (
     <header className="flex flex-col items-center gap-1.5">
       <h1
-        className={`text-2xl font-bold leading-tight ${
+        className={`${titleSizeClass} font-bold leading-tight ${
           gradientTitle
             ? "bg-[linear-gradient(90deg,var(--page-text),var(--page-accent),var(--page-text))] bg-[length:200%_auto] bg-clip-text text-transparent [animation:sparkle_4s_linear_infinite]"
             : ""
         }`}
         style={{ fontFamily: titleFont }}
       >
-        <AnimatedTitle
+        <AnimatedText
           text={title}
           animation={theme.effects.titleAnimation}
           speed={theme.effects.titleAnimationSpeed}
@@ -128,14 +144,22 @@ export function HeaderBlock({ config, page, theme }: BlockProps<HeaderBlockConfi
             // sont conservés à l'affichage (un `\n` devient un saut de ligne),
             // sans pour autant étendre les espaces multiples.
             <p
-              className="mt-1 max-w-prose whitespace-pre-line text-sm leading-relaxed opacity-90"
+              className={`mt-1 max-w-prose whitespace-pre-line ${bioSizeClass} leading-relaxed opacity-90`}
               style={{ fontFamily: bioFont }}
             >
-              {bio}
+              {config.bioAnimation && config.bioAnimation !== "none" ? (
+                <AnimatedText
+                  text={bio}
+                  animation={config.bioAnimation}
+                  speed={config.bioAnimationSpeed ?? 80}
+                />
+              ) : (
+                bio
+              )}
             </p>
           )}
           {config.subtitle && (
-            <p className="text-sm text-[var(--page-muted)]" style={{ fontFamily: subtitleFont }}>
+            <p className={`${subtitleSizeClass} text-[var(--page-muted)]`} style={{ fontFamily: subtitleFont }}>
               {config.subtitle}
             </p>
           )}
@@ -143,7 +167,7 @@ export function HeaderBlock({ config, page, theme }: BlockProps<HeaderBlockConfi
       ) : (
         <>
           {config.subtitle && (
-            <p className="text-sm text-[var(--page-muted)]" style={{ fontFamily: subtitleFont }}>
+            <p className={`${subtitleSizeClass} text-[var(--page-muted)]`} style={{ fontFamily: subtitleFont }}>
               {config.subtitle}
             </p>
           )}
@@ -152,28 +176,25 @@ export function HeaderBlock({ config, page, theme }: BlockProps<HeaderBlockConfi
             // sont conservés à l'affichage (un `\n` devient un saut de ligne),
             // sans pour autant étendre les espaces multiples.
             <p
-              className="mt-1 max-w-prose whitespace-pre-line text-sm leading-relaxed opacity-90"
+              className={`mt-1 max-w-prose whitespace-pre-line ${bioSizeClass} leading-relaxed opacity-90`}
               style={{ fontFamily: bioFont }}
             >
-              {bio}
+              {config.bioAnimation && config.bioAnimation !== "none" ? (
+                <AnimatedText
+                  text={bio}
+                  animation={config.bioAnimation}
+                  speed={config.bioAnimationSpeed ?? 80}
+                />
+              ) : (
+                bio
+              )}
             </p>
           )}
         </>
       )}
 
-      {config.badges.length > 0 && (
-        <ul className="mt-2 flex flex-wrap justify-center gap-1.5">
-          {config.badges.map((badge, index) => (
-            <li
-              key={index}
-              className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-              style={{ backgroundColor: `${badge.color}22`, color: badge.color }}
-            >
-              {badge.label}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Les badges de l'en-tête (custom) ne sont plus affichés : la
+          fonctionnalité a été désactivée sur toutes les pages. */}
     </header>
   );
 }
@@ -182,6 +203,11 @@ const TEXT_SIZES = { xs: "text-xs", sm: "text-sm", md: "text-base", lg: "text-lg
 
 export function TextBlock({ config, theme }: BlockProps<TextBlockConfig>) {
   if (!config.content) return null;
+
+  // Une animation de texte anime la chaîne brute : le markdown n'est pas
+  // interprété dans ce cas (machine à écrire, vague… travaillent caractère
+  // par caractère). Le texte brut reste donc le seul contenu animé.
+  const animated = config.animation && config.animation !== "none";
 
   return (
     <p
@@ -196,13 +222,22 @@ export function TextBlock({ config, theme }: BlockProps<TextBlockConfig>) {
       style={{
         textAlign: config.align,
         color: config.useAccentColor ? "var(--page-accent)" : undefined,
-        fontFamily: resolveFontFamily(config.fontFamily, theme.typography.customFontUrl),
+        fontFamily: resolveFontFamily(config.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName),
       }}
-      // Le contenu est du markdown restreint converti par notre propre
-      // fonction : gras, italique, souligné, barré, liens. Aucun HTML de
-      // l'utilisateur n'atteint cet attribut — voir lib/markdown.ts.
-      dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(config.content) }}
-    />
+    >
+      {animated ? (
+        <AnimatedText
+          text={config.content}
+          animation={config.animation!}
+          speed={config.animationSpeed ?? 80}
+        />
+      ) : (
+        // Le contenu est du markdown restreint converti par notre propre
+        // fonction : gras, italique, souligné, barré, liens. Aucun HTML de
+        // l'utilisateur n'atteint cet attribut — voir lib/markdown.ts.
+        <span dangerouslySetInnerHTML={{ __html: renderInlineMarkdown(config.content) }} />
+      )}
+    </p>
   );
 }
 

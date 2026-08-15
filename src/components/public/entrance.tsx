@@ -49,7 +49,7 @@ export function EntranceScreen({
           >
             <span
               className="animate-pulse text-sm uppercase tracking-[0.3em]"
-              style={{ fontFamily: resolveFontFamily(theme.entranceScreen.fontFamily, theme.typography.customFontUrl) }}
+              style={{ fontFamily: resolveFontFamily(theme.entranceScreen.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName) }}
             >
               {theme.entranceScreen.text}
             </span>

@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 import type { PublicPage } from "@/lib/biolinks/public-types";
-import { themeToCssVars, customFontFace } from "@/lib/theme/css";
+import { themeToCssVars, customFontFace, fontFaceRule } from "@/lib/theme/css";
+import { resolveFontFamily } from "@/lib/theme/fonts";
+import { fontNameFromUrl } from "@/lib/theme/font-name";
 import { PageBackground } from "@/components/public/background";
 import { Particles } from "@/components/public/particles";
 import { EntranceScreen } from "@/components/public/entrance";
 import { TiltCard } from "@/components/public/tilt-card";
 import { ViewTracker } from "@/components/public/view-tracker";
 import { VolumeControl } from "@/components/public/volume-control";
-import { PageAudio, PreviewAutoplay } from "@/components/public/page-audio";
+import { MusicPlayer, PreviewAutoplay, type MusicTrack } from "@/components/public/music-player";
+import { ViewCounterBadge } from "@/components/public/view-counter-badge";
 import { CustomCursor } from "@/components/public/custom-cursor";
 import { TabTitle } from "@/components/public/tab-title";
 import { MediaLock } from "@/components/public/media-lock";
@@ -37,11 +40,63 @@ import { mediaUrl } from "@/lib/biolinks/public-types";
 export function PageShell({ page, preview = false }: { page: PublicPage; preview?: boolean }) {
   const { theme } = page;
   const cssVars = themeToCssVars(theme);
-  const fontFace = customFontFace(theme);
-  const audioUrl = theme.audio.url ?? mediaUrl(page, "AUDIO");
+  // La police custom vit maintenant dans le block En-tête (le pseudo) ; la
+  // globale n'accepte plus d'upload. On injecte les deux @font-face : la
+  // globale (compat pages anciennes) et celle de l'en-tête.
+  const headerConfig = (page.blocks.find((block) => block.type === "header")?.config ?? {}) as {
+    customFontUrl?: string;
+    customFontName?: string;
+  };
+  const headerFontFace = headerConfig.customFontUrl
+    ? fontFaceRule(
+        headerConfig.customFontUrl,
+        headerConfig.customFontName ?? fontNameFromUrl(headerConfig.customFontUrl) ?? "AstraCustom"
+      )
+    : null;
+  const fontFace = [customFontFace(theme), headerFontFace].filter(Boolean).join("\n");
+  // Pistes de musique : les pistes du thème, ou l'URL historique du thème
+  // (pages créées avant l'arrivée de `tracks`), ou un média audio uploadé.
+  const tracks: MusicTrack[] =
+    theme.audio.tracks.length > 0
+      ? theme.audio.tracks
+      : theme.audio.url
+        ? [{ url: theme.audio.url }]
+        : mediaUrl(page, "AUDIO")
+          ? [{ url: mediaUrl(page, "AUDIO")! }]
+          : [];
+  const audioUrl = tracks[0]?.url;
   const tabTitle = page.seoTitle ?? page.title ?? `@${page.owner.username}`;
 
+  // Quand le son vient de la vidéo de fond, pas de lecteur séparé : la vidéo
+  // EST la musique (et le bouton de volume suffit).
+  const useVideoAudio = theme.background.kind === "video" && theme.background.useVideoAudio;
+
+  // Le lecteur musical est affiché quand la musique custom est activée et
+  // qu'aucune vidéo de fond ne fournit le son. Sa position se règle :
+  // "card" l'intègre dans la carte (après les blocks), "below" en fait un
+  // bloc séparé sous la carte.
+  // Seules les pistes avec une URL comptent : une piste vide (« Ajouter une
+  // piste » avant upload) ne doit ni afficher le lecteur, ni le faire planter.
+  const showPlayer = theme.audio.enabled && tracks.some((track) => track.url) && !useVideoAudio;
+  const playerPlacement = theme.audio.placement ?? "below";
+
   const entrance = theme.effects.entranceAnimation;
+
+  // Le compteur de vues est posé en absolu dans un coin de la carte. Il
+  // faut réserver sa place dans le flux du contenu, sinon la pastille
+  // chevauche la fin de la bio (ou le lecteur) dans les coins du bas.
+  const counterAtTop =
+    theme.viewCounter.position === "top-left" || theme.viewCounter.position === "top-right";
+  const counterAtBottom =
+    theme.viewCounter.position === "bottom-left" ||
+    theme.viewCounter.position === "bottom-right" ||
+    theme.viewCounter.position === "bottom-center";
+  // Police de la pastille : dédiée si choisie, sinon la police de la page.
+  const counterFont = resolveFontFamily(
+    theme.viewCounter.fontFamily,
+    theme.typography.customFontUrl,
+    theme.typography.customFontName
+  );
   const entranceClass =
     entrance === "slide-up"
       ? "[animation:slide-up_0.6s_ease-out]"
@@ -72,11 +127,21 @@ export function PageShell({ page, preview = false }: { page: PublicPage; preview
             // coins arrondis : sans ça, certains navigateurs peignent un carré
             // visible aux angles. La lueur (box-shadow) n'est pas affectée.
             overflow: "hidden",
+            // Ancrage du compteur de vues, posé en absolu dans un coin.
+            position: "relative",
           }}
         >
           <div
             className="flex flex-col"
-            style={{ gap: "var(--layout-gap)", alignItems: "var(--layout-align)", textAlign: "var(--layout-text-align)" as "center" | "left" }}
+            style={{
+              gap: "var(--layout-gap)",
+              alignItems: "var(--layout-align)",
+              textAlign: "var(--layout-text-align)" as "center" | "left",
+              // Réserve la place de la pastille de vues pour qu'elle ne
+              // recouvre jamais le contenu (bio, lecteur…) dans les coins.
+              paddingTop: counterAtTop ? "2.25rem" : undefined,
+              paddingBottom: counterAtBottom ? "2.25rem" : undefined,
+            }}
           >
             {/* Bannière : pleine largeur, collée aux bords de la carte. Les
                 marges négatives compensent le padding de la carte, et son
@@ -97,8 +162,36 @@ export function PageShell({ page, preview = false }: { page: PublicPage; preview
                 <BlockRenderer block={block} page={page} theme={theme} />
               </div>
             ))}
+            {/* Lecteur intégré à la carte : dernière chose dans le flux des
+                blocks, quand le réglage « placement » est sur "card". Il
+                occupe toute la largeur du contenu (comme les blocks), avec
+                son padding interne : « presque toute la largeur de la carte,
+                petit padding ». */}
+            {showPlayer && playerPlacement === "card" && (
+              <div className="w-full">
+                <MusicPlayer theme={theme} tracks={tracks} />
+              </div>
+            )}
           </div>
+          {/* Compteur de vues dans un coin de la carte. Toujours affiché,
+              en absolu : il ne prend pas de place dans le flux des blocks.
+              Rendu aussi dans l'aperçu de l'éditeur pour un rendu fidèle. */}
+          <ViewCounterBadge
+            position={theme.viewCounter.position}
+            compact={theme.viewCounter.compact}
+            fontFamily={counterFont}
+            initialUnique={page.uniqueViews}
+            initialTotal={page.totalViews}
+          />
         </div>
+      {/* Lecteur en bloc séparé, sous la carte (réglage « below »). Il est
+          DANS le TiltCard : il suit donc l'inclinaison 3D de la carte, comme
+          s'il en faisait partie. */}
+      {showPlayer && playerPlacement === "below" && (
+        <div className="mt-4 w-full" style={{ maxWidth: "var(--layout-width)", width: "min(100vw - 2rem, var(--layout-width))" }}>
+          <MusicPlayer theme={theme} tracks={tracks} />
+        </div>
+      )}
       </TiltCard>
 
       {/* Le pied de page garde la police du site, pas celle de la page :
@@ -146,8 +239,10 @@ export function PageShell({ page, preview = false }: { page: PublicPage; preview
       <Particles effects={theme.effects} />
       {!preview && <ViewTracker slug={page.slug} />}
       {!preview && <MediaLock />}
-      {!preview && <VolumeControl theme={theme} audioUrl={audioUrl} />}
-      {!preview && theme.audio.enabled && audioUrl && <PageAudio theme={theme} audioUrl={audioUrl} />}
+      {/* Le bouton de volume flottant reste pour une vidéo de fond avec son.
+          Avec un lecteur de musique affiché, le volume vit DANS le lecteur :
+          on retire donc le bouton en haut à gauche. */}
+      {!preview && <VolumeControl theme={theme} audioUrl={audioUrl} hide={showPlayer} />}
       {/* Le signalement n'a pas sa place dans l'aperçu de l'éditeur : c'est
           un outil pour les visiteurs, pas pour l'auteur de la page. */}
       {!preview && <ReportButton slug={page.slug} />}
@@ -156,7 +251,9 @@ export function PageShell({ page, preview = false }: { page: PublicPage; preview
         <TabTitle
           title={tabTitle}
           enabled={theme.effects.tabTitleTypewriter}
+          style={theme.effects.tabTitleStyle}
           speed={theme.effects.tabTitleSpeed}
+          direction={theme.effects.tabTitleDirection}
         />
       )}
       {preview && <PreviewAutoplay />}

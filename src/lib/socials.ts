@@ -14,28 +14,38 @@ type SocialMeta = {
   color: string;
   /** Base d'URL. `null` pour les plateformes qui exigent une URL complète. */
   urlBase: string | null;
+  /** Suffixe ajouté après le pseudo (ex. Roblox : `/profile`). */
+  suffix?: string;
+  /** Texte d'exemple affiché dans l'input de l'éditeur (défaut « Pseudo ou URL »). */
+  valueHint?: string;
 };
 
 export const SOCIAL_META: Record<SocialPlatform, SocialMeta> = {
-  discord: { label: "Discord", color: "#5865F2", urlBase: null },
+  discord: { label: "Discord", color: "#5865F2", urlBase: null, valueHint: "Pseudo Discord ou invitation" },
   instagram: { label: "Instagram", color: "#E4405F", urlBase: "https://instagram.com/" },
   tiktok: { label: "TikTok", color: "#000000", urlBase: "https://tiktok.com/@" },
   twitter: { label: "X", color: "#000000", urlBase: "https://x.com/" },
   youtube: { label: "YouTube", color: "#FF0000", urlBase: "https://youtube.com/@" },
   twitch: { label: "Twitch", color: "#9146FF", urlBase: "https://twitch.tv/" },
-  spotify: { label: "Spotify", color: "#1DB954", urlBase: "https://open.spotify.com/user/" },
+  // Le profil public Spotify se construit avec l'identifiant utilisateur
+  // (chaîne opaque), pas avec le nom d'affichage.
+  spotify: { label: "Spotify", color: "#1DB954", urlBase: "https://open.spotify.com/user/", valueHint: "ID ou URL" },
   github: { label: "GitHub", color: "#181717", urlBase: "https://github.com/" },
   telegram: { label: "Telegram", color: "#26A5E4", urlBase: "https://t.me/" },
   snapchat: { label: "Snapchat", color: "#FFFC00", urlBase: "https://snapchat.com/add/" },
-  steam: { label: "Steam", color: "#171A21", urlBase: "https://steamcommunity.com/id/" },
-  roblox: { label: "Roblox", color: "#00A2FF", urlBase: "https://roblox.com/users/" },
+  steam: { label: "Steam", color: "#171A21", urlBase: "https://steamcommunity.com/id/", valueHint: "Pseudo, ID ou URL" },
+  // Roblox : l'URL de profil se construit avec l'ID numérique du compte,
+  // pas avec le pseudo (https://www.roblox.com/users/{id}/profile).
+  roblox: { label: "Roblox", color: "#00A2FF", urlBase: "https://www.roblox.com/users/", suffix: "/profile", valueHint: "ID ou URL" },
   kick: { label: "Kick", color: "#53FC18", urlBase: "https://kick.com/" },
   soundcloud: { label: "SoundCloud", color: "#FF5500", urlBase: "https://soundcloud.com/" },
   reddit: { label: "Reddit", color: "#FF4500", urlBase: "https://reddit.com/user/" },
   pinterest: { label: "Pinterest", color: "#BD081C", urlBase: "https://pinterest.com/" },
   linkedin: { label: "LinkedIn", color: "#0A66C2", urlBase: "https://linkedin.com/in/" },
-  email: { label: "Email", color: "#EA4335", urlBase: null },
-  website: { label: "Site web", color: "#8B5CF6", urlBase: null },
+  // NameMC : annuaire des comptes Minecraft (profil = page publique).
+  namemc: { label: "NameMC", color: "#2563EB", urlBase: "https://namemc.com/profile/" },
+  email: { label: "Email", color: "#EA4335", urlBase: null, valueHint: "email@exemple.com" },
+  website: { label: "Site web", color: "#8B5CF6", urlBase: null, valueHint: "https://" },
 };
 
 /**
@@ -81,7 +91,81 @@ export function socialUrl(platform: SocialPlatform, value: string): string | nul
   // « ../../autre » ne détourne l'URL construite.
   if (!/^[a-zA-Z0-9._-]{1,64}$/.test(handle)) return null;
 
-  return `${meta.urlBase}${handle}`;
+  // Steam : une URL personnalisée s'écrit /id/{slug}, mais l'identifiant
+  // numérique (SteamID64) vit sous /profiles/{id}.
+  if (platform === "steam" && /^\d{10,}$/.test(handle)) {
+    return `https://steamcommunity.com/profiles/${handle}`;
+  }
+
+  return `${meta.urlBase}${handle}${meta.suffix ?? ""}`;
+}
+
+/**
+ * Hôtes connus → plateforme. Servent à « deviner » la plateforme depuis une
+ * URL complète, pour afficher l'icône logique (bloc liens, ou réseaux quand
+ * l'utilisateur colle une URL complète).
+ */
+const PLATFORM_HOST_PATTERNS: [SocialPlatform, RegExp][] = [
+  ["youtube", /(^|\.)youtube\.com$|(^|\.)youtu\.be$/],
+  ["twitter", /(^|\.)x\.com$|(^|\.)twitter\.com$/],
+  ["instagram", /(^|\.)instagram\.com$/],
+  ["tiktok", /(^|\.)tiktok\.com$/],
+  ["twitch", /(^|\.)twitch\.tv$/],
+  ["github", /(^|\.)github\.com$/],
+  ["discord", /(^|\.)discord\.(gg|com|app)$/],
+  ["spotify", /(^|\.)open\.spotify\.com$|(^|\.)spotify\.com$/],
+  ["telegram", /(^|\.)t\.me$|(^|\.)telegram\.(me|org)$/],
+  ["snapchat", /(^|\.)snapchat\.com$/],
+  ["steam", /(^|\.)steamcommunity\.com$|(^|\.)steampowered\.com$/],
+  ["roblox", /(^|\.)roblox\.com$/],
+  ["kick", /(^|\.)kick\.com$/],
+  ["soundcloud", /(^|\.)soundcloud\.com$/],
+  ["reddit", /(^|\.)reddit\.com$/],
+  ["pinterest", /(^|\.)pinterest\.[a-z.]{2,}$/],
+  ["linkedin", /(^|\.)linkedin\.com$/],
+  ["namemc", /(^|\.)namemc\.com$/],
+];
+
+/**
+ * Couleur de texte lisible sur une couleur de marque (pour l'icône posée
+ * sur un cercle plein). Les marques claires (jaune Snapchat) reçoivent un
+ * texte sombre, les sombres (X, Steam…) un texte blanc.
+ */
+export function contrastTextColor(hex: string): string {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return "#ffffff";
+  const value = parseInt(match[1], 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  // Luminance relative perçue (ITU-R BT.601).
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#0a0a0f" : "#ffffff";
+}
+
+/**
+ * Devine la plateforme d'un lien à partir de son URL (hôte).
+ * Retourne null si aucune plateforme connue ne correspond.
+ */
+export function detectPlatformFromUrl(value: string): SocialPlatform | null {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("mailto:")) return "email";
+  if (!/^https?:\/\//i.test(trimmed)) return null;
+
+  let host: string;
+  try {
+    host = new URL(trimmed).hostname;
+  } catch {
+    return null;
+  }
+
+  for (const [platform, pattern] of PLATFORM_HOST_PATTERNS) {
+    if (pattern.test(host)) return platform;
+  }
+
+  return null;
 }
 
 /**
@@ -105,10 +189,26 @@ export const SOCIAL_ICON_PATHS: Record<SocialPlatform, string> = {
   steam: "M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z",
   roblox: "M18.926 23.998L0 18.892 5.075.002 24 5.108zM15.348 10.51l-5.322-1.436-1.436 5.322 5.322 1.436z",
   kick: "M1.333 0h8v5.333H12V2.667h2.667V0h8v8h-2.667v2.667H17.333v2.666H20V16h2.667v8h-8v-2.667H12v-2.666H9.333V24h-8Z",
-  soundcloud: "M1.175 12.225c-.051 0-.094.046-.101.1l-.233 2.154.233 2.105c.007.058.05.104.101.104.05 0 .09-.44.099-.104l.255-2.105-.27-2.154c0-.057-.045-.1-.09-.1m-.899.828c-.06 0-.091.037-.104.094L0 14.479l.165 1.308c0 .49.045.94.09.094s.089-.37.104-.094l.21-1.308-.21-1.332c0-.045-.045-.09-.09-.09m1.83-1.229c-.061 0-.12.045-.12.104l-.21 2.563.225 2.458c0 .06.045.12.119.12.061 0 .105-.061.121-.12l.254-2.474-.254-2.548c-.016-.06-.061-.12-.121-.12m.945-.089c-.075 0-.135.06-.15.135l-.193 2.64.21 2.544c.16.077.075.138.149.138.075 0 .135-.061.15-.15l.24-2.532-.24-2.623c0-.075-.06-.135-.135-.135l-.031-.017zm1.155.36c-.005-.09-.075-.149-.159-.149-.09 0-.158.06-.164.149l-.217 2.43.2 2.563c0 .09.075.157.159.157.074 0 .148-.68.148-.158l.227-2.563-.227-2.444.033.015zm.809-1.709c-.101 0-.18.09-.18.181l-.203 3.957.194 2.529c0 .9.09.18.18.18.096 0 .18-.9.18-.18l.221-2.529-.221-3.972c0-.09-.09-.18-.18-.18l.009.014zm.959-.914c-.105 0-.194.09-.194.202l-.196 4.856.187 2.55c0 .9.09.18.203.18.1 0 .188-.9.188-.195l.22-2.52-.21-4.862c0-.104-.09-.194-.21-.194l.012-.017zm.989-.449c-.121 0-.211.089-.211.209l-.198 5.29.199 2.505c0 .104.09.21.209.21.104 0 .225-.9.225-.21l.212-2.52-.212-5.322c0-.12-.09-.225-.21-.225l-.014.063zm1.245.045c0-.135-.105-.24-.24-.24-.119 0-.24.105-.24.24l-.164 5.322.18 2.46c0 .134.105.24.24.24s.24-.106.24-.24l.195-2.475-.196-5.307h-.015zm.749-.134c-.135 0-.255.119-.255.254l-.196 5.188.18 2.446c0 .15.12.255.255.255s.255-.12.255-.255l.21-2.43-.181-5.203c-.015-.135-.12-.24-.24-.24l-.028-.015zm1.005.166c-.164 0-.284.135-.284.285l-.15 5.052.165 2.4c0 .15.119.271.284.271.15 0 .271-.135.271-.285l.179-2.4-.179-5.023c0-.165-.121-.3-.271-.3h-.015zm1.184-.75c-.045-.03-.105-.061-.166-.061s-.119.03-.164.061c-.75.044-.135.135-.135.24v.03l-.135 5.475.15 2.385c0 .06.029.12.074.165.045.44.105.074.181.074.06 0 .119-.29.164-.074.045-.45.075-.105.075-.18l.164-2.37-.164-5.475c0-.075-.03-.15-.075-.194l.031-.076zm1.155-.795c-.045-.06-.12-.075-.194-.075-.06 0-.135.03-.18.075-.6.045-.104.135-.104.209v.03l-.15 6.24.15 2.339c0 .16.045.135.104.18.045.44.104.75.18.75.061 0 .135-.31.18-.75.06-.45.105-.119.105-.194l.164-2.34-.164-6.24c0-.09-.045-.164-.104-.209l.13.02zm14.694 5.235c-.394 0-.766.075-1.125.21-.24-2.729-2.53-4.86-5.324-4.86-.675 0-1.34.135-1.92.36-.225.09-.284.18-.284.36v9.585c0 .18.135.33.315.36h8.34c1.665 0 3.015-1.35 3.015-3.015 0-1.665-1.35-3.015-3.015-3.015l-.002.015z",
+  soundcloud: "M1.175 12.225c-.051 0-.094.046-.101.1l-.233 2.154.233 2.105c.007.058.05.098.101.098.05 0 .09-.04.099-.098l.255-2.105-.27-2.154c0-.057-.045-.1-.09-.1m-.899.828c-.06 0-.091.037-.104.094L0 14.479l.165 1.308c0 .055.045.094.09.094s.089-.045.104-.104l.21-1.319-.21-1.334c0-.061-.044-.09-.09-.09m1.83-1.229c-.061 0-.12.045-.12.104l-.21 2.563.225 2.458c0 .06.045.12.119.12.061 0 .105-.061.121-.12l.254-2.474-.254-2.548c-.016-.06-.061-.12-.121-.12m.945-.089c-.075 0-.135.06-.15.135l-.193 2.64.21 2.544c.016.077.075.138.149.138.075 0 .135-.061.15-.15l.24-2.532-.24-2.623c0-.075-.06-.135-.135-.135l-.031-.017zm1.155.36c-.005-.09-.075-.149-.159-.149-.09 0-.158.06-.164.149l-.217 2.43.2 2.563c0 .09.075.157.159.157.074 0 .148-.068.148-.158l.227-2.563-.227-2.444.033.015zm.809-1.709c-.101 0-.18.09-.18.181l-.21 3.957.187 2.563c0 .09.08.164.18.164.094 0 .174-.09.18-.18l.209-2.563-.209-3.972c-.008-.104-.088-.18-.18-.18m.959-.914c-.105 0-.195.09-.203.194l-.18 4.872.165 2.548c0 .12.09.209.195.209.104 0 .194-.089.21-.209l.193-2.548-.192-4.856c-.016-.12-.105-.21-.21-.21m.989-.449c-.121 0-.211.089-.225.209l-.165 5.275.165 2.52c.014.119.104.225.225.225.119 0 .225-.105.225-.225l.195-2.52-.196-5.275c0-.12-.105-.225-.225-.225m1.245.045c0-.135-.105-.24-.24-.24-.119 0-.24.105-.24.24l-.149 5.441.149 2.503c.016.135.121.24.256.24s.24-.105.24-.24l.164-2.503-.164-5.456-.016.015zm.749-.134c-.135 0-.255.119-.255.254l-.15 5.322.15 2.473c0 .15.12.255.255.255s.255-.12.255-.27l.15-2.474-.165-5.307c0-.148-.12-.27-.271-.27m1.005.166c-.164 0-.284.135-.284.285l-.103 5.143.135 2.474c0 .149.119.277.284.277.149 0 .271-.12.284-.285l.121-2.443-.135-5.112c-.012-.164-.135-.285-.285-.285m1.184-.945c-.045-.029-.105-.044-.165-.044s-.119.015-.165.044c-.09.054-.149.15-.149.255v.061l-.104 6.048.115 2.449v.008c.008.06.03.135.074.18.058.061.142.104.234.104.08 0 .158-.044.209-.09.058-.06.091-.135.091-.225l.015-.24.117-2.203-.135-6.086c0-.104-.061-.193-.135-.239l-.002-.022zm1.006-.547c-.045-.045-.09-.061-.15-.061-.074 0-.149.016-.209.061-.075.061-.119.15-.119.24v.029l-.137 6.609.076 1.215.061 1.185c0 .164.148.314.328.314.181 0 .33-.15.33-.329l.15-2.414-.15-6.637c0-.12-.074-.221-.165-.277m8.934 3.777c-.405 0-.795.086-1.139.232-.24-2.654-2.46-4.736-5.188-4.736-.659 0-1.305.135-1.889.359-.225.09-.27.18-.285.359v9.368c.016.18.15.33.33.345h8.185C22.681 17.218 24 15.914 24 14.28s-1.319-2.952-2.938-2.952",
+  // NameMC : le symbole officiel (un « N » plein, full-bleed), mis à l'échelle
+  // depuis son viewBox natif 14.83×14.83 vers 24×24 pour remplir le SVG — plus
+  // de carré de fond ni de marge : le cercle coloré fait office de fond.
+  namemc: "M18.66 5.32 5.32 5.32 5.32 24 0 24 0 0 18.66 0 18.66 5.29 18.71 5.34 24 5.34 24 24 18.68 24 18.68 5.34 18.66 5.32Z",
   reddit: "M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-6.995 4.87s-6.994-2.176-6.994-4.87c0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z",
   pinterest: "M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z",
   linkedin: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
   email: "M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67ZM22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z",
   website: "M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm7.938 9h-3.02a15.6 15.6 0 0 0-1.16-5.406A8.02 8.02 0 0 1 19.938 11zM12 4.062c.72 1.02 1.72 3.16 1.9 6.938h-3.8c.18-3.778 1.18-5.918 1.9-6.938zM8.242 5.594A15.6 15.6 0 0 0 7.082 11h-3.02a8.02 8.02 0 0 1 4.18-5.406zM4.062 13h3.02a15.6 15.6 0 0 0 1.16 5.406A8.02 8.02 0 0 1 4.062 13zM12 19.938c-.72-1.02-1.72-3.16-1.9-6.938h3.8c-.18 3.778-1.18 5.918-1.9 6.938zm3.758-1.532A15.6 15.6 0 0 0 16.918 13h3.02a8.02 8.02 0 0 1-4.18 5.406z",
+};
+
+/**
+ * Transform optionnel appliqué à l'icône pour équilibrer son poids visuel.
+ *
+ * Le symbole NameMC est un logo « plein cadre » (full-bleed) : sans
+ * compensation, son « N » paraît plus gros que les autres marques qui ont
+ * une marge interne dans leur viewBox. On le réduit légèrement autour de son
+ * centre pour l'aligner sur les autres icônes.
+ */
+export const SOCIAL_ICON_TRANSFORM: Partial<Record<SocialPlatform, string>> = {
+  namemc: "translate(12 12) scale(0.8) translate(-12 -12)",
 };

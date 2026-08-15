@@ -48,7 +48,9 @@ export function MediaUpload({
 }: {
   type: MediaType;
   currentUrl?: string;
-  onUploaded: (asset: UploadedAsset) => void;
+  /** Reçoit l'asset, et le nom de fichier d'origine (pour le titre d'une
+   * piste ou le nom d'une police — l'URL stockée porte un UUID, pas le nom). */
+  onUploaded: (asset: UploadedAsset, fileName?: string) => void;
   onCleared?: () => void;
 }) {
   const { biolink } = useEditor();
@@ -76,7 +78,7 @@ export function MediaUpload({
       return;
     }
 
-    onUploaded(result.asset);
+    onUploaded(result.asset, file.name);
   }
 
   const isVideo = currentUrl && /\.(mp4|webm)$/i.test(currentUrl);
@@ -102,9 +104,7 @@ export function MediaUpload({
           {isAudio ? (
             <span className="inline-flex items-center gap-1.5 text-xs text-content-secondary">
               <svg viewBox="0 0 24 24" className="size-3.5 fill-current" aria-hidden>
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" />
-                <circle cx="18" cy="16" r="3" />
+                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
               </svg>
               Fichier audio chargé
             </span>

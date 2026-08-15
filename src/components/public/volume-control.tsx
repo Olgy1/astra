@@ -21,11 +21,16 @@ import { setSoundMuted } from "@/components/public/sound-state";
 export function VolumeControl({
   theme,
   audioUrl,
+  hide = false,
 }: {
   theme: ThemeConfig;
   audioUrl?: string;
+  /** Masqué quand le lecteur de musique affiché embarque déjà le volume. */
+  hide?: boolean;
 }) {
-  const hasMusic = theme.audio.enabled && Boolean(audioUrl);
+  const hasMusic =
+    theme.audio.enabled &&
+    (Boolean(audioUrl) || theme.audio.tracks.some((track) => Boolean(track.url)));
   const hasVideoSound = theme.background.kind === "video" && theme.background.useVideoAudio;
   const initialVolume =
     theme.background.kind === "video" && theme.background.useVideoAudio
@@ -80,7 +85,7 @@ export function VolumeControl({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [muted, volume]);
 
-  if (!hasMusic && !hasVideoSound) return null;
+  if (hide || (!hasMusic && !hasVideoSound)) return null;
 
   function toggleMute() {
     const next = !muted;

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ThemeConfig } from "@/lib/schemas/theme";
+import { SparkleTrail } from "@/components/public/sparkle-trail";
 
 /**
  * Curseur personnalisé.
@@ -20,76 +21,11 @@ import type { ThemeConfig } from "@/lib/schemas/theme";
  * particule tourne doucement et s'estompe en s'éloignant du curseur.
  */
 
-/** Forme du logo Astra : étincelle à quatre branches, remplie par la couleur. */
-function AstraShape({ size, color }: { size: number; color: string }) {
-  return (
-    <svg
-      viewBox="0 0 1024 1024"
-      aria-hidden
-      style={{ width: size, height: size, display: "block" }}
-    >
-      <path
-        d="M512 102 Q512 512 922 512 Q512 512 512 922 Q512 512 102 512 Q512 512 512 102 Z"
-        fill={color}
-      />
-    </svg>
-  );
-}
-
-/** Étoile à cinq branches, dessinée en polygone. */
-function StarShape({ size, color }: { size: number; color: string }) {
-  const points = Array.from({ length: 10 }, (_, index) => {
-    const radius = index % 2 === 0 ? 0.5 : 0.22;
-    const angle = (Math.PI / 5) * index - Math.PI / 2;
-    return `${50 + radius * 50 * Math.cos(angle)},${50 + radius * 50 * Math.sin(angle)}`;
-  }).join(" ");
-
-  return (
-    <svg viewBox="0 0 100 100" aria-hidden style={{ width: size, height: size, display: "block" }}>
-      <polygon points={points} fill={color} />
-    </svg>
-  );
-}
-
-function TrailParticle({
-  kind,
-  size,
-  color,
-  rotation,
-}: {
-  kind: ThemeConfig["cursor"]["trailKind"];
-  size: number;
-  color: string;
-  rotation: number;
-}) {
-  switch (kind) {
-    case "astra":
-      return <AstraShape size={size} color={color} />;
-    case "stars":
-      return <StarShape size={size} color={color} />;
-    case "squares":
-      return (
-        <span
-          className="block"
-          style={{ width: size, height: size, backgroundColor: color, transform: `rotate(${rotation}deg)` }}
-        />
-      );
-    default:
-      return (
-        <span className="block rounded-full" style={{ width: size, height: size, backgroundColor: color }} />
-      );
-  }
-}
-
 export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
   const { enabled, url, hotspotX, hotspotY, trailEnabled, trailColor, trailKind } = cursor;
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const cursorRef = useRef<HTMLImageElement>(null);
-  // Les éléments de la traînée vivent dans une ref : le rendu recrée un
-  // tableau à chaque passe, et la boucle d'animation (une seule closure) doit
-  // retrouver les mêmes nœuds quoi qu'il arrive.
-  const trailElsRef = useRef<(HTMLSpanElement | null)[]>([]);
 
   // Charge l'image en avance pour savoir si elle est exploitable. Tant qu'elle
   // n'est pas prête, on garde le curseur natif.
@@ -107,8 +43,8 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
     };
   }, [enabled, url, failed]);
 
-  // Suit la souris (avec une traînée optionnelle). Le positionnement passe
-  // par transform, sans toucher au layout, et par une seule animation frame.
+  // Suit la souris. Le positionnement passe par transform, sans toucher au
+  // layout, et par une seule animation frame.
   useEffect(() => {
     if (!enabled || !ready) return;
 
@@ -116,18 +52,6 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
     let visible = true;
-    const TRAIL = trailEnabled ? 8 : 0;
-    // Chaque particule porte sa position, sa taille et une rotation propre,
-    // pour que la traînée ne soit pas un simple dégradé de points.
-    const trail: { x: number; y: number; size: number; rotation: number }[] = Array.from(
-      { length: TRAIL },
-      (_, index) => ({
-        x: mouseX,
-        y: mouseY,
-        size: 14 - index * 1.1,
-        rotation: index * 18,
-      })
-    );
 
     function frame() {
       const cursor = cursorRef.current;
@@ -135,32 +59,6 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
         cursor.style.opacity = visible ? "1" : "0";
         cursor.style.transform = `translate3d(${mouseX - hotspotX}px, ${mouseY - hotspotY}px, 0)`;
       }
-
-      // Chaque particule se rapproche de la précédente : l'ensemble dessine un
-      // ruban qui suit la souris avec un retard progressif. La vitesse
-      // d'interpolation plus lente vers l'arrière de la file crée un effet de
-      // traîne qui s'étire et se resserre naturellement.
-      let previousX = mouseX;
-      let previousY = mouseY;
-      for (let index = 0; index < TRAIL; index++) {
-        const point = trail[index];
-        // La première particule suit de près, les suivantes avec un retard
-        // croissant : c'est ce qui donne l'impression de fluidité.
-        const follow = 0.32 - index * 0.02;
-        point.x += (previousX - point.x) * follow;
-        point.y += (previousY - point.y) * follow;
-        point.rotation += 1.6; // rotation lente et continue
-        const element = trailElsRef.current[index];
-        if (element) {
-          element.style.transform = `translate3d(${point.x - point.size / 2}px, ${point.y - point.size / 2}px, 0)`;
-          // Opacité décroissante vers la queue, jamais nulle au repos : la
-          // traînée reste visible même souris immobile.
-          element.style.opacity = visible ? String(0.55 - index * 0.05) : "0";
-        }
-        previousX = point.x;
-        previousY = point.y;
-      }
-
       raf = requestAnimationFrame(frame);
     }
 
@@ -188,7 +86,7 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
       document.documentElement.removeEventListener("mouseleave", onLeave);
       document.documentElement.removeEventListener("mouseenter", onEnter);
     };
-  }, [enabled, ready, trailEnabled, hotspotX, hotspotY]);
+  }, [enabled, ready, hotspotX, hotspotY]);
 
   // Masque le curseur natif uniquement quand l'image personnalisée est prête.
   useEffect(() => {
@@ -206,32 +104,7 @@ export function CustomCursor({ cursor }: { cursor: ThemeConfig["cursor"] }) {
       {ready && (
         <style>{`.astra-cursor-hidden, .astra-cursor-hidden * { cursor: none !important; }`}</style>
       )}
-      {trailEnabled && ready && (
-        <span aria-hidden className="pointer-events-none fixed left-0 top-0 z-[9998]">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <span
-              key={index}
-              ref={(element) => {
-                trailElsRef.current[index] = element;
-              }}
-              className="absolute"
-              style={{
-                width: 14 - index * 1.1,
-                height: 14 - index * 1.1,
-                opacity: 0,
-                willChange: "transform",
-              }}
-            >
-              <TrailParticle
-                kind={trailKind}
-                size={14 - index * 1.1}
-                color={trailColor}
-                rotation={index * 18}
-              />
-            </span>
-          ))}
-        </span>
-      )}
+      {trailEnabled && ready && <SparkleTrail color={trailColor} kind={trailKind} />}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={cursorRef}

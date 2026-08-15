@@ -6,6 +6,7 @@ import { parseThemeConfig } from "@/lib/schemas/theme";
 import { normalizeBadges } from "@/lib/badges";
 import { EditorProvider, type EditorBiolink } from "@/lib/editor/store";
 import { EditorShell } from "@/components/editor/editor-shell";
+import { listBlockTypes } from "@/lib/blocks/registry";
 
 export const metadata: Metadata = { title: "Éditeur" };
 
@@ -70,13 +71,18 @@ export default async function EditorPage({ params }: Props) {
       isEnabled: link.isEnabled,
       clicks: link.clicks,
     })),
-    blocks: biolink.blocks.map((block) => ({
-      id: block.id,
-      type: block.type,
-      config: block.config,
-      position: block.position,
-      isEnabled: block.isEnabled,
-    })),
+    // Les blocks dont le type a été retiré du catalogue (badges, compteur de
+    // visites…) n'ont plus d'éditeur ni de rendu : on les laisse en base pour
+    // ne rien détruire, mais ils disparaissent de la liste de l'éditeur.
+    blocks: biolink.blocks
+      .filter((block) => listBlockTypes().includes(block.type))
+      .map((block) => ({
+        id: block.id,
+        type: block.type,
+        config: block.config,
+        position: block.position,
+        isEnabled: block.isEnabled,
+      })),
     media: biolink.mediaAssets,
     owner: { ...biolink.owner, badges: normalizeBadges(biolink.owner.badges) },
   };

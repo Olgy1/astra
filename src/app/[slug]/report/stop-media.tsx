@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { resetEntered } from "@/components/public/entered";
 
 /**
  * Coupe tout média resté actif sur la page de signalement.
@@ -27,7 +28,13 @@ export function StopMedia() {
 
     stop();
     window.addEventListener("pageshow", stop);
-    return () => window.removeEventListener("pageshow", stop);
+    return () => {
+      window.removeEventListener("pageshow", stop);
+      // En quittant la page de signalement (annuler ou confirmation), on remet
+      // le signal d'entrée à zéro : la page bio rechargée redémarre la vidéo
+      // depuis le début, comme une première visite.
+      resetEntered();
+    };
   }, []);
 
   return null;

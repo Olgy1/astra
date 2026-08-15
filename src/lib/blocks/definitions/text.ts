@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BlockDefinition } from "@/lib/blocks/types";
+import { TEXT_ANIMATIONS } from "@/lib/text-animations";
 
 /**
  * Bloc de texte libre.
@@ -19,6 +20,11 @@ const configSchema = z.object({
   bold: z.boolean().default(false),
   /** Police du paragraphe. Absent = police globale de la page. */
   fontFamily: z.string().max(64).optional(),
+  /** Animation du texte. Quand elle est active, le contenu est rendu brut
+   * (le markdown n'est pas interprété : l'animation travaille sur la chaîne). */
+  animation: z.enum(TEXT_ANIMATIONS).default("none"),
+  /** Vitesse de l'animation, en millisecondes par caractère. */
+  animationSpeed: z.number().min(20).max(500).default(80),
 });
 
 export type TextBlockConfig = z.infer<typeof configSchema>;

@@ -5,10 +5,9 @@ import type { ThemeConfig } from "@/lib/schemas/theme";
 import { getBlockDefinition } from "@/lib/blocks/registry";
 
 import { AvatarBlock, HeaderBlock, TextBlock, ImageBlock, DividerBlock } from "@/components/blocks/identity";
-import { BadgesBlock } from "@/components/blocks/badges";
 import { LinksBlock, SocialsBlock, CtaButtonBlock } from "@/components/blocks/links";
 import { VideoBlock, SpotifyBlock, RedditBlock, DiscordServerBlock } from "@/components/blocks/embeds";
-import { VisitCounterBlock, CountdownBlock } from "@/components/blocks/widgets";
+import { CountdownBlock } from "@/components/blocks/widgets";
 
 /**
  * Table type → composant.
@@ -24,9 +23,11 @@ import { VisitCounterBlock, CountdownBlock } from "@/components/blocks/widgets";
  * déjà été validée par le schéma zod de son type avant d'arriver en base.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Le type « badges » est conservé dans la table pour les pages créées avant
+// sa désactivation, mais son rendu est désactivé : plus aucun badge n'est
+// affiché sur les pages publiques.
 const RENDERERS: Record<string, ComponentType<BlockProps<any>>> = {
   avatar: AvatarBlock,
-  badges: BadgesBlock,
   header: HeaderBlock,
   text: TextBlock,
   image: ImageBlock,
@@ -38,7 +39,9 @@ const RENDERERS: Record<string, ComponentType<BlockProps<any>>> = {
   spotify: SpotifyBlock,
   reddit: RedditBlock,
   discord_server: DiscordServerBlock,
-  visit_counter: VisitCounterBlock,
+  // Le compteur de visites en block est désactivé : il vit désormais dans
+  // les coins de la carte (thème → Compteur de vues). Les anciennes pages
+  // qui en ont un ne l'affichent plus.
   countdown: CountdownBlock,
 };
 

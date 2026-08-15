@@ -29,7 +29,7 @@
   --color-warning: oklch(0.78 0.15 75);
   --color-danger: oklch(0.63 0.22 25);
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
@@ -48,6 +48,20 @@ body {
    bleu au tap, qui trahit une page web non pensée pour le tactile. */
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Ouverture des menus déroulants de l'éditeur (sélecteurs de police, etc.) :
+   léger fondu + zoom depuis le bord d'ancrage du menu. Discret et court.
+   Respecte préférences d'accessibilité via le bloc prefers-reduced-motion. */
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Les effets décoratifs des pages publiques (particules, tilt, animations de

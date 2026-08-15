@@ -23,6 +23,12 @@ export function TiltCard({
   function handleMove(event: React.MouseEvent<HTMLDivElement>) {
     if (!enabled) return;
 
+    // Pendant un drag (bouton enfoncé = sélection de texte, déplacement du
+    // doigt), on n'incline pas la carte : changer le transform au milieu
+    // d'une sélection interromprait le surlignage du navigateur. L'effet 3D
+    // ne doit répondre qu'au simple survol.
+    if (event.buttons !== 0) return;
+
     const element = ref.current;
     if (!element) return;
 

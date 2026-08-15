@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,14 @@ export function ReportForm({ slug }: { slug: string }) {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Après confirmation, on redirige vers l'accueil après un court délai
+  // (le bouton ci-dessous permet de partir immédiatement).
+  useEffect(() => {
+    if (!sent) return;
+    const timer = setTimeout(() => window.location.assign("/"), 3500);
+    return () => clearTimeout(timer);
+  }, [sent]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -48,7 +56,7 @@ export function ReportForm({ slug }: { slug: string }) {
     return (
       <div className="flex flex-col gap-6 rounded-2xl border border-border-subtle bg-surface-1 p-6">
         <header className="text-center">
-          <h1 className="text-xl font-semibold">Merci</h1>
+          <h1 className="text-xl font-semibold">Signalement confirmé</h1>
           <p className="mt-2 text-sm text-content-secondary">
             Votre signalement a bien été transmis à notre équipe de modération.
           </p>
@@ -58,8 +66,12 @@ export function ReportForm({ slug }: { slug: string }) {
           Le signalement pour <span className="font-mono">astra.is-a.dev/{slug}</span> a été enregistré.
         </Alert>
 
-        <Link href={`/${slug}`} className="flex justify-center">
-          <Button type="button">Retour à la page</Button>
+        <p className="text-center text-xs text-content-muted">
+          Redirection vers l&apos;accueil dans quelques secondes…
+        </p>
+
+        <Link href="/" className="flex justify-center">
+          <Button type="button">Retour à l&apos;accueil</Button>
         </Link>
       </div>
     );
@@ -96,12 +108,17 @@ export function ReportForm({ slug }: { slug: string }) {
           <Button type="submit" loading={busy} fullWidth>
             Envoyer le signalement
           </Button>
-          <Link
-            href={`/${slug}`}
+          {/* Rechargement complet (pas de navigation SPA) : la page bio doit
+              repartir de zéro — écran d'entrée, vidéo au début — comme une
+              première visite. Le signal « entré » du module partagé reste sinon
+              en mémoire et relance la vidéo immédiatement. */}
+          <button
+            type="button"
+            onClick={() => window.location.assign(`/${slug}`)}
             className="flex w-full items-center justify-center rounded-xl border border-border-subtle bg-surface-2 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-surface-3"
           >
             Annuler
-          </Link>
+          </button>
         </div>
       </form>
     </div>
