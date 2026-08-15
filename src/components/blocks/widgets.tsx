@@ -80,11 +80,22 @@ export function VisitCounterBlock({ config, page, theme }: BlockProps<VisitCount
     <div
       className={[
         "inline-flex items-center gap-1.5 text-sm",
-        config.style === "card"
-          ? "border border-[var(--card-border-color)] bg-[var(--card-bg)] px-4 py-2"
-          : "bg-white/5 px-3 py-1.5",
+        config.style === "card" ? "px-4 py-2" : "bg-white/5 px-3 py-1.5",
       ].join(" ")}
-      style={{ borderRadius: config.style === "card" ? "var(--card-radius)" : "9999px", fontFamily: blockFont }}
+      style={{
+        borderRadius: config.style === "card" ? "var(--card-radius)" : "9999px",
+        fontFamily: blockFont,
+        // Style « card » : même recette que la carte (opacité, flou, bordure,
+        // lueur), pas un fond opaque posé dessus.
+        ...(config.style === "card"
+          ? {
+              backgroundColor: "color-mix(in oklab, var(--card-bg) calc(var(--card-opacity) * 100%), transparent)",
+              backdropFilter: "blur(var(--card-blur))",
+              border: "var(--card-border-width) solid var(--card-border-color)",
+              boxShadow: "var(--card-shadow), var(--card-glow)",
+            }
+          : {}),
+      }}
     >
       {content}
     </div>
@@ -145,10 +156,22 @@ export function CountdownBlock({ config, theme }: BlockProps<CountdownBlockConfi
             key={unit.label}
             className={
               config.style === "boxes"
-                ? "flex min-w-[3.5rem] flex-col items-center border border-[var(--card-border-color)] bg-[var(--card-bg)] px-2 py-2"
+                ? "flex min-w-[3.5rem] flex-col items-center px-2 py-2"
                 : "flex items-baseline gap-0.5"
             }
-            style={config.style === "boxes" ? { borderRadius: "var(--card-radius)" } : undefined}
+            style={
+              config.style === "boxes"
+                ? {
+                    // Recette carte : opacité, flou, bordure et lueur — les
+                    // boîtes du décompte s'intègrent à la carte.
+                    borderRadius: "var(--card-radius)",
+                    backgroundColor: "color-mix(in oklab, var(--card-bg) calc(var(--card-opacity) * 100%), transparent)",
+                    backdropFilter: "blur(var(--card-blur))",
+                    border: "var(--card-border-width) solid var(--card-border-color)",
+                    boxShadow: "var(--card-shadow), var(--card-glow)",
+                  }
+                : undefined
+            }
           >
             <span className="text-xl font-bold tabular-nums">
               {String(unit.value).padStart(2, "0")}

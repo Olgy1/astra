@@ -50,6 +50,63 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Sliders de l'éditeur (vitesse, tailles, opacités…).
+
+   Le thumb par défaut du navigateur est plus grand que la piste : dès que le
+   slider reçoit une petite hauteur (ici 6 px), le navigateur rogne le pouce
+   (Safari le coupe en deux). On peint tout nous-mêmes : piste 6 px + thumb
+   16 px centré avec un margin-top négatif, pour que le pouce reste toujours
+   entier et à la couleur d'accent, dans tous les navigateurs. */
+.slider-control {
+  /* La boîte de l'input fait la hauteur du pouce (16 px) : le pouce ne
+     dépasse JAMAIS du cadre du slider, donc il ne déborde pas sur la rangée
+     du dessus ni du dessous (c'était le « pouce qui traîne » dans les
+     réglages voisins). La piste (6 px) est dessinée par les pseudo-éléments. */
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  background: transparent;
+  outline: none;
+}
+
+.slider-control::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--slider-track, var(--color-surface-3));
+}
+
+.slider-control::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  /* 16 px de pouce sur 6 px de piste dans une boîte de 16 px :
+     (6 − 16) / 2 = −5 px pour centrer le pouce sur la piste. */
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--slider-thumb, var(--color-accent));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  cursor: pointer;
+}
+
+.slider-control::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--slider-track, var(--color-surface-3));
+}
+
+.slider-control::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--slider-thumb, var(--color-accent));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  cursor: pointer;
+}
+
 /* Ouverture des menus déroulants de l'éditeur (sélecteurs de police, etc.) :
    léger fondu + zoom depuis le bord d'ancrage du menu. Discret et court.
    Respecte préférences d'accessibilité via le bloc prefers-reduced-motion. */

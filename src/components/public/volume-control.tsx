@@ -137,7 +137,15 @@ export function VolumeControl({
           value={muted ? 0 : volume}
           onChange={(event) => changeVolume(Number(event.target.value))}
           aria-label="Volume"
-          className="h-1.5 w-24 cursor-pointer appearance-none rounded-full bg-white/30 accent-white"
+          // Thumb custom entier, blanc, sur piste translucide : même traitement
+          // que les autres sliders, sinon le pouce par défaut est rogné.
+          className="slider-control w-24 cursor-pointer"
+          style={
+            {
+              "--slider-track": "rgb(255 255 255 / 0.3)",
+              "--slider-thumb": "#ffffff",
+            } as React.CSSProperties
+          }
         />
       </div>
     </div>

@@ -254,8 +254,15 @@ export function MusicPlayer({
           value={muted ? 0 : volume}
           onChange={(event) => changeVolume(Number(event.target.value))}
           aria-label="Volume"
-          className="h-1 flex-1 cursor-pointer appearance-none rounded-full"
-          style={{ backgroundColor: "color-mix(in oklab, var(--page-text) 25%, transparent)", accentColor: "var(--page-accent)" }}
+          // Thumb custom entier (le rendu par défaut se fait rogner sur une
+          // piste aussi fine), à la couleur d'accent de la page.
+          className="slider-control flex-1 cursor-pointer"
+          style={
+            {
+              "--slider-track": "color-mix(in oklab, var(--page-text) 25%, transparent)",
+              "--slider-thumb": "var(--page-accent)",
+            } as React.CSSProperties
+          }
         />
       </div>
 

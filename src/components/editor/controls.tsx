@@ -90,7 +90,12 @@ export function SliderControl({
         step={step}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-3 accent-[var(--color-accent)]"
+        // Le rendu est entièrement custom (pseudo-éléments dans globals.css) :
+        // le thumb par défaut du navigateur est plus grand que la piste et se
+        // fait rogner quand on donne une petite hauteur au slider. En passant
+        // par une classe dédiée, tous les sliders de l'éditeur partagent le
+        // même thumb entier, centré, à la couleur d'accent.
+        className="slider-control w-full cursor-pointer"
       />
     </div>
   );

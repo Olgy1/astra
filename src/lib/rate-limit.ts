@@ -32,6 +32,7 @@ export const RATE_LIMITS = {
   mutation: { limit: 120, windowSeconds: 60 },
   publicPage: { limit: 240, windowSeconds: 60 },
   report: { limit: 5, windowSeconds: 3600 },
+  discordInvite: { limit: 120, windowSeconds: 3600 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitScope = keyof typeof RATE_LIMITS;

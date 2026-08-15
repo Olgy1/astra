@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useEditor, type EditorBlock } from "@/lib/editor/store";
 import {
   SelectControl,
@@ -9,6 +10,7 @@ import {
   ToggleControl,
 } from "@/components/editor/controls";
 import { SOCIAL_PLATFORMS } from "@/lib/blocks/definitions/socials";
+import { extractInviteCode } from "@/lib/blocks/definitions/discord-server";
 import { HEADER_SIZES } from "@/lib/blocks/definitions/header";
 import { SOCIAL_META, detectPlatformFromUrl } from "@/lib/socials";
 import { TEXT_ANIMATIONS, TEXT_ANIMATION_LABELS } from "@/lib/text-animations";
@@ -570,9 +572,28 @@ function RedditForm({ config, setField }: { config: Config; setField: (k: string
 }
 
 function DiscordServerForm({ config, setField }: { config: Config; setField: (k: string, v: unknown) => void }) {
+  // La saisie accepte le code seul ou l'URL complète ; on stocke toujours le
+  // code extrait (l'URL est rejetée par le schéma, qui la réduit au code).
+  const [raw, setRaw] = useState(str(config, "inviteCode"));
+
+  function apply(next: string) {
+    setRaw(next);
+    const code = extractInviteCode(next);
+    setField("inviteCode", code || undefined);
+  }
+
   return (
     <>
-      <Field label="Code d'invitation" value={str(config, "inviteCode")} placeholder="abc123" onChange={(v) => setField("inviteCode", v || undefined)} hint="Le code seul, pas l'URL complète : « discord.gg/abc123 » → « abc123 »." />
+      <Field
+        label="Lien ou code d'invitation"
+        value={raw}
+        placeholder="https://discord.gg/abc123"
+        onChange={apply}
+        hint="Collez l'URL complète de l'invitation ou le code seul : « discord.gg/abc123 » → « abc123 »."
+      />
+      <ToggleControl label="Afficher l'icône du serveur" checked={bool(config, "showIcon", true)} onChange={(v) => setField("showIcon", v)} />
+      <ToggleControl label="Afficher le nombre de membres" checked={bool(config, "showMemberCount", true)} onChange={(v) => setField("showMemberCount", v)} />
+      <ToggleControl label="Afficher les membres en ligne" checked={bool(config, "showOnlineCount", true)} onChange={(v) => setField("showOnlineCount", v)} />
       <Field label="Texte du bouton" value={str(config, "buttonLabel", "Rejoindre")} onChange={(v) => setField("buttonLabel", v)} />
       <FontField value={str(config, "fontFamily") || undefined} onChange={(v) => setField("fontFamily", v)} />
     </>

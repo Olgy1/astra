@@ -211,7 +211,9 @@ export function AvatarCropModal({
             step={0.05}
             value={Math.min(zoom, zoomMax)}
             onChange={(event) => setZoom(Number(event.target.value))}
-            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-surface-3 accent-[var(--color-accent)]"
+            // Même rendu custom que les sliders de l'éditeur (thumb entier,
+            // jamais rogné par la petite hauteur de piste).
+            className="slider-control flex-1 cursor-pointer"
           />
           <span className="w-8 shrink-0 text-right tabular-nums text-content-muted">{zoom.toFixed(1)}×</span>
         </label>

@@ -35,7 +35,10 @@ function trackClick(slug: string, linkId: string): void {
 }
 
 const BUTTON_STYLES: Record<LinksBlockConfig["buttonStyle"], string> = {
-  solid: "bg-[var(--card-bg)] border border-[var(--card-border-color)]",
+  // « Solid » n'a pas de classes de fond : la recette carte (opacité + flou +
+  // bordure + lueur) est posée en style inline, exactement comme le lecteur
+  // musique et le block Discord.
+  solid: "",
   outlined: "border-2 border-current bg-transparent",
   ghost: "bg-white/5 border border-transparent",
   neon: "border border-[var(--page-accent)] bg-transparent shadow-[0_0_16px_-4px_var(--page-accent)]",
@@ -91,7 +94,21 @@ export function LinksBlock({ config, page, theme }: BlockProps<LinksBlockConfig>
             ]
               .filter(Boolean)
               .join(" ")}
-            style={{ borderRadius: "var(--card-radius)", fontFamily: blockFont }}
+            style={{
+              borderRadius: "var(--card-radius)",
+              fontFamily: blockFont,
+              // Même recette que la carte : fond à l'opacité de la carte, flou,
+              // bordure, ombre et lueur. Le bouton « solid » a l'air d'un
+              // morceau de la carte, pas d'un bloc opaque posé dessus.
+              ...(config.buttonStyle === "solid"
+                ? {
+                    backgroundColor: "color-mix(in oklab, var(--card-bg) calc(var(--card-opacity) * 100%), transparent)",
+                    backdropFilter: "blur(var(--card-blur))",
+                    border: "var(--card-border-width) solid var(--card-border-color)",
+                    boxShadow: "var(--card-shadow), var(--card-glow)",
+                  }
+                : {}),
+            }}
           >
             {config.showIcons && (
               link.icon ? (
@@ -278,7 +295,8 @@ export function SocialsBlock({ config, page }: BlockProps<SocialsBlockConfig>) {
 
 const CTA_VARIANTS: Record<CtaButtonBlockConfig["variant"], string> = {
   primary: "bg-[var(--page-accent)] text-white",
-  secondary: "bg-[var(--card-bg)] border border-[var(--card-border-color)]",
+  // Le fond de la variante « secondary » suit la recette carte (inline).
+  secondary: "",
   outline: "border-2 border-current",
   gradient: "bg-[linear-gradient(90deg,var(--page-accent),color-mix(in_oklab,var(--page-accent),white_35%))] text-white",
 };
@@ -311,6 +329,15 @@ export function CtaButtonBlock({ config, theme }: BlockProps<CtaButtonBlockConfi
       style={{
         borderRadius: "var(--card-radius)",
         fontFamily: resolveFontFamily(config.fontFamily, theme.typography.customFontUrl, theme.typography.customFontName),
+        // Variante « secondary » : même recette carte que les autres blocs.
+        ...(config.variant === "secondary"
+          ? {
+              backgroundColor: "color-mix(in oklab, var(--card-bg) calc(var(--card-opacity) * 100%), transparent)",
+              backdropFilter: "blur(var(--card-blur))",
+              border: "var(--card-border-width) solid var(--card-border-color)",
+              boxShadow: "var(--card-shadow), var(--card-glow)",
+            }
+          : {}),
       }}
     >
       {config.label}
