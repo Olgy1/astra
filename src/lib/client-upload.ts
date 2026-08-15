@@ -5,15 +5,20 @@ import type { MediaType } from "@prisma/client";
 /**
  * Upload de médias côté client.
  *
- * Le fichier transite par le serveur Next.js (`/api/media/upload`), qui le
- * valide (type MIME, taille) et l'écrit sur le stockage configuré — local en
- * développement, S3/Backblaze en production. Ce flux fonctionne sans rien
- * configurer sur le bucket : le navigateur ne parle qu'à l'API du site,
- * jamais directement au stockage.
+ * Deux chemins, choisis selon la taille du fichier :
+ *  - **petit fichier** (≤ 4,5 Mo) : multipart via `/api/media/upload`. Le
+ *    serveur valide, écrit sur le stockage (local ou S3) et enregistre en
+ *    base. Simple : un seul aller-retour.
+ *  - **gros fichier** (> 4,5 Mo — la limite de body de Vercel, typiquement
+ *    les vidéos de fond) : via le CDN Cloudflare. Le serveur signe une URL
+ *    d'upload B2 (`/api/media/presign`), le navigateur envoie le fichier à
+ *    la fonction Cloudflare Pages du CDN médias (`/upload`), qui le
+ *    transfère vers B2 en serveur-à-serveur — aucun CORS de bucket à
+ *    configurer, aucune clé B2 dans le navigateur. Une confirmation
+ *    (`/api/media/confirm`) enregistre ensuite l'asset en base.
  *
- * Un ancien flux « upload direct » (URL présignée, PUT navigateur → S3) a été
- * retiré : il exigeait une règle CORS sur le bucket B2, et son échec bloquait
- * tous les uploads. Le flux serveur est le chemin unique, comme avant.
+ * Dans les deux cas le navigateur ne parle qu'à l'API du site ou au CDN,
+ * jamais directement au bucket.
  */
 
 export type UploadedAsset = { id: string; type: MediaType; url: string; key: string };
@@ -28,6 +33,9 @@ export type UploadFileParams = {
 export type UploadResult = { ok: true; asset: UploadedAsset } | { ok: false; message: string };
 
 type ApiResponse<T> = { ok: true; data: T } | { ok: false; error?: { message?: string } };
+
+/** Limite de body des plateformes serverless (Vercel) : au-delà, le flux CDN. */
+const SERVER_UPLOAD_LIMIT = 4.5 * 1024 * 1024;
 
 function parseJson<T>(text: string): T | null {
   try {
@@ -82,7 +90,128 @@ async function uploadThroughServer({ file, type, biolinkId, onProgress }: Upload
   return { ok: true, asset: body.result.data.asset };
 }
 
+/** Upload des gros fichiers via le CDN Cloudflare (PUT → fonction, puis confirmation). */
+async function uploadThroughCdn({ file, type, biolinkId, onProgress }: UploadFileParams): Promise<UploadResult> {
+  // 1. Le serveur valide type/taille, signe une URL d'upload B2 et renvoie
+  //    l'URL de la fonction CDN qui la transférera.
+  let presign: ApiResponse<{
+    presigned?: boolean;
+    uploadUrl?: string;
+    key?: string;
+    requiredHeaders?: Record<string, string>;
+  }> | null = null;
+  try {
+    const response = await fetch("/api/media/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        biolinkId,
+      }),
+    });
+    presign = parseJson(await response.text());
+  } catch {
+    presign = null;
+  }
+
+  if (!presign?.ok) {
+    return { ok: false, message: presign?.error?.message ?? "Impossible de préparer l'upload." };
+  }
+
+  // Stockage local : pas de CDN, on passe par le serveur.
+  if (presign.data.presigned === false) {
+    return uploadThroughServer({ file, type, biolinkId, onProgress });
+  }
+
+  const { uploadUrl, key, requiredHeaders } = presign.data;
+  if (!uploadUrl || !key) {
+    return { ok: false, message: "Réponse de préparation d'upload invalide." };
+  }
+
+  // 2. PUT du fichier vers la fonction CDN (`/upload?url=<url présignée B2>`),
+  //    qui le transfère vers le stockage en serveur-à-serveur. L'en-tête
+  //    Content-Type est signé dans l'URL : il faut l'envoyer tel quel, sinon
+  //    le stockage refuse. XHR expose la progression.
+  const put = await new Promise<{ status: number; message?: string }>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+
+    if (requiredHeaders) {
+      for (const [name, value] of Object.entries(requiredHeaders)) {
+        xhr.setRequestHeader(name, value);
+      }
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({ status: xhr.status });
+      } else {
+        resolve({
+          status: xhr.status,
+          message: parseJson<{ message?: string }>(xhr.responseText)?.message,
+        });
+      }
+    };
+
+    xhr.onerror = () => resolve({ status: 0 });
+    xhr.send(file);
+  });
+
+  if (put.status === 0) {
+    return {
+      ok: false,
+      message: "L'upload via le CDN a échoué (réseau). Réessayez.",
+    };
+  }
+
+  if (put.status >= 300) {
+    return {
+      ok: false,
+      message: put.message ?? `Le CDN a refusé le fichier (HTTP ${put.status}).`,
+    };
+  }
+
+  // 3. Confirmation : le serveur interroge l'objet (HeadObject) pour vérifier
+  //    qu'il existe vraiment, puis enregistre l'asset en base (et purge
+  //    l'ancien média du même type).
+  let confirm: ApiResponse<{ asset: UploadedAsset }> | null = null;
+  try {
+    const response = await fetch("/api/media/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, type, biolinkId }),
+    });
+    confirm = parseJson(await response.text());
+  } catch {
+    confirm = null;
+  }
+
+  if (!confirm) {
+    return { ok: false, message: "Le fichier est uploadé mais son enregistrement a échoué." };
+  }
+  if (!confirm.ok) {
+    return { ok: false, message: confirm.error?.message ?? "Le fichier est uploadé mais son enregistrement a échoué." };
+  }
+  if (!confirm.data?.asset) return { ok: false, message: "Réponse de confirmation invalide." };
+
+  return { ok: true, asset: confirm.data.asset };
+}
+
 /** Upload d'un média, quel que soit le mode de stockage du serveur. */
 export async function uploadFile(params: UploadFileParams): Promise<UploadResult> {
-  return uploadThroughServer(params);
+  // Les petits fichiers passent par le serveur (un seul aller-retour). Les
+  // gros — les vidéos de fond, qui dépassent la limite de Vercel — passent
+  // par le CDN Cloudflare.
+  if (params.file.size <= SERVER_UPLOAD_LIMIT) {
+    return uploadThroughServer(params);
+  }
+  return uploadThroughCdn(params);
 }

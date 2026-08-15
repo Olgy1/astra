@@ -114,7 +114,9 @@ JavaScript : c'est ce qui rend un XSS incapable de voler la session.
 
 | Méthode | Endpoint | Auth | Rôle |
 |---|---|---|---|
-| `POST` | `/api/media/upload` | Vérifié | Upload multipart via le serveur (local ou S3). Valide type MIME et taille. Rate limit par compte et IP. |
+| `POST` | `/api/media/upload` | Vérifié | Upload multipart via le serveur (local ou S3), pour les fichiers ≤ 4,5 Mo. Valide type MIME et taille. Rate limit par compte et IP. |
+| `POST` | `/api/media/presign` | Vérifié | Prépare l'upload des gros fichiers (> 4,5 Mo) : signe une URL B2 et renvoie l'URL de la fonction Cloudflare qui transférera. Rate limit par compte et IP. |
+| `POST` | `/api/media/confirm` | Vérifié | Enregistre l'asset après upload via le CDN. Vérifie que l'objet existe vraiment (HEAD B2). |
 | `GET` | `/api/media` | Session | Médias de l'utilisateur, filtrables par type. |
 | `DELETE` | `/api/media/:id` | Propriétaire | Supprime l'asset en base et sur S3. |
 

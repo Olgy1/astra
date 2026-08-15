@@ -1,11 +1,10 @@
-import { prisma } from "@/lib/db";
 import { ApiError, clientIp, ok, withErrorHandling } from "@/lib/api";
 import { enforce } from "@/lib/rate-limit";
 import { requireVerifiedUser } from "@/lib/auth/context";
 import { requireOwnedBiolinkRef } from "@/lib/biolinks/access";
-import { invalidatePageCache } from "@/lib/redis";
+import { registerMediaAsset } from "@/lib/media";
 import { MEDIA_CONSTRAINTS, validateUpload } from "@/lib/s3";
-import { deleteStoredObjects, storeFile } from "@/lib/storage";
+import { storeFile } from "@/lib/storage";
 import type { MediaType } from "@prisma/client";
 
 /**
@@ -85,56 +84,19 @@ export const POST = withErrorHandling(async (request: Request) => {
 
   const stored = await storeFile(user.id, type, buffer, file.type);
 
-  const asset = await prisma.mediaAsset.create({
-    data: {
-      ownerId: user.id,
-      biolinkId,
-      type,
-      key: stored.key,
-      url: stored.url,
-      mimeType: file.type,
-      sizeBytes: stored.sizeBytes,
-    },
-    select: { id: true, type: true, url: true, key: true, sizeBytes: true, createdAt: true },
+  // Création en base + purge des anciens médias du même type (sauf AUDIO) +
+  // invalidation du cache : voir registerMediaAsset, partagé avec le flux
+  // d'upload des gros fichiers via le CDN (même comportement aux deux
+  // entrées).
+  const asset = await registerMediaAsset({
+    ownerId: user.id,
+    biolinkId,
+    type,
+    key: stored.key,
+    url: stored.url,
+    mimeType: file.type,
+    sizeBytes: stored.sizeBytes,
   });
-
-  if (biolinkId) {
-    // AUDIO est désormais multi-valeurs : une page peut porter plusieurs
-    // pistes, donc plusieurs fichiers audio (une URL par piste). La purge
-    // « un seul média par type » ci-dessous supprimerait la piste 1 quand on
-    // uploade la piste 2 — exactement le bug « la première piste ne marche
-    // plus » (son fichier était effacé du stockage). Les autres types
-    // restent mono-valeurs (avatar, bannière, fond, curseur, police) et
-    // gardent la purge : un avatar recadré remplace l'ancien au lieu de
-    // laisser la page afficher l'image d'origine.
-    if (type !== "AUDIO") {
-      const previous = await prisma.mediaAsset.findMany({
-        where: { biolinkId, type, id: { not: asset.id } },
-        select: { id: true, key: true },
-      });
-
-      if (previous.length > 0) {
-        await prisma.mediaAsset.deleteMany({
-          where: { id: { in: previous.map((entry) => entry.id) } },
-        });
-
-        // Le fichier d'abord supprimé en base, le stockage ensuite : le pire
-        // cas est un objet orphelin invisible, pas une page qui référence un
-        // fichier disparu. Un échec ici ne doit pas faire échouer l'upload.
-        try {
-          await deleteStoredObjects(previous.map((entry) => entry.key));
-        } catch (error) {
-          console.error("[media] purge de l'ancien média incomplète :", error);
-        }
-      }
-    }
-
-    const biolink = await prisma.biolink.findUnique({
-      where: { id: biolinkId },
-      select: { slug: true },
-    });
-    if (biolink) await invalidatePageCache(biolink.slug);
-  }
 
   return ok({ asset }, 201);
 });

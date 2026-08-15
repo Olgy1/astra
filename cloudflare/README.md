@@ -133,6 +133,29 @@ n'est pas en ligne, les médias seraient introuvables.
    de fond → lecture OK. Les anciennes URLs (`/api/media/file/...`) continuent
    de marcher (redirection 301 vers le CDN, sans toucher B2).
 
+## G. Upload des gros fichiers (vidéos de fond) — fonction `upload`
+
+L'application upload les petits fichiers par le serveur (Vercel limite le
+corps des requêtes à ~4,5 Mo). Les **vidéos de fond** dépassent cette limite :
+le navigateur les envoie à cette fonction, qui les transfère vers B2 en
+serveur-à-serveur (URL présignée signée par l'application, expirant en 5 min).
+Aucune clé B2 dans Cloudflare, aucun CORS de bucket à configurer.
+
+1. Dans ton dépôt GitHub **astra-media**, ajoute le fichier
+   `functions/upload.js` (contenu : `cloudflare/media-proxy/functions/upload.js`
+   de ce projet) — à côté de `functions/[[path]].js`. GitHub web :
+   **Add file → Create new file → colle → Commit**. Le projet Pages
+   redéploie automatiquement (~1-2 min).
+2. *(Optionnel)* si ton endpoint B2 n'est pas sur `backblazeb2.com`, ajoute la
+   variable d'environnement `UPLOAD_TARGET_HOST` dans le projet Pages
+   (Settings → Environment variables) avec le hostname de ton endpoint S3.
+3. Rien d'autre à configurer : l'application envoie déjà les gros fichiers à
+   `https://<CDN>/upload?url=<présigné>` (voir `S3_PUBLIC_URL`).
+
+Test rapide : upload d'une vidéo de fond dans l'éditeur → elle se téléverse
+via le CDN et s'affiche. La fonction plafonne à **100 Mo** (limite Workers) ;
+au-delà, l'application refuse avec un message clair avant l'upload.
+
 ## Rappel quota B2
 
 - **Servi par le cache Cloudflare** : tout ce qui est déjà chargé une fois

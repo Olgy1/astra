@@ -5,17 +5,22 @@ import {
   DeleteObjectsCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { serverEnv } from "@/lib/env";
 import type { MediaType } from "@prisma/client";
 
 /**
  * Stockage des médias (S3/Backblaze).
  *
- * L'écriture se fait côté serveur (`s3PutObject`, appelé par la route
- * `/api/media/upload`) : le navigateur ne parle qu'à l'API du site, donc
- * aucun CORS à configurer sur le bucket. L'ancien flux « upload direct par
- * URL présignée » a été retiré : il exigeait une règle CORS sur B2 et son
- * échec bloquait tous les uploads.
+ * Deux chemins d'écriture :
+ *  - petit fichier : via le serveur (`s3PutObject`, route `/api/media/upload`) ;
+ *  - gros fichier (vidéo de fond > ~4,5 Mo) : via la fonction Cloudflare
+ *    Pages du CDN médias, qui transfère vers une URL présignée B2 en
+ *    serveur-à-serveur — voir `createPresignedUpload` et
+ *    `cloudflare/media-proxy/functions/upload.js`.
+ *
+ * Dans les deux cas le navigateur ne parle qu'à l'API du site ou au CDN,
+ * jamais directement au bucket : aucun CORS à configurer sur B2.
  */
 
 const globalForS3 = globalThis as unknown as { s3: S3Client | undefined };
@@ -188,6 +193,46 @@ export function s3PublicUrl(key: string): string {
 
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return `${base}/api/media/file/${key}`;
+}
+
+export type PresignedUpload = {
+  uploadUrl: string;
+  key: string;
+  expiresInSeconds: number;
+};
+
+/**
+ * URL présignée pour un PUT depuis la fonction Cloudflare du CDN médias.
+ *
+ * Seul `Content-Type` est signé (pas `Content-Length`) : la fonction reçoit
+ * le fichier depuis le navigateur et le transfère en flux, sans connaître la
+ * taille à l'avance — signer `content-length` ferait échouer la signature.
+ * Le content-type étant dans la signature, le stockage rejette tout upload
+ * qui ne correspond pas à ce qui a été validé.
+ */
+export async function createPresignedUpload(
+  ownerId: string,
+  type: MediaType,
+  mimeType: string,
+  sizeBytes: number
+): Promise<PresignedUpload> {
+  const key = buildMediaKey(ownerId, type, mimeType);
+  const expiresInSeconds = 300;
+
+  const command = new PutObjectCommand({
+    Bucket: serverEnv().S3_BUCKET!,
+    Key: key,
+    ContentType: mimeType,
+    ContentLength: sizeBytes,
+    CacheControl: "public, max-age=31536000, immutable",
+  });
+
+  const uploadUrl = await getSignedUrl(s3Client(), command, {
+    expiresIn: expiresInSeconds,
+    signableHeaders: new Set(["content-type"]),
+  });
+
+  return { uploadUrl, key, expiresInSeconds };
 }
 
 /** Envoie un buffer sur S3 (upload côté serveur). */
