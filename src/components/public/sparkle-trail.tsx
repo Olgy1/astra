@@ -7,8 +7,18 @@ import { useEffect, useRef } from "react";
  *
  * Chaque passage du curseur émet de petites particules lumineuses qui
  * retombent (ou montent, pour les bulles) et s'estompent en une fraction de
- * seconde. Un seul canvas pour toute la traînée : une centaine de particules
- * par seconde ne coûte rien, là où des nœuds DOM animés s'empileraient.
+ * seconde. Un seul canvas pour toute la traînée.
+ *
+ * Optimisations de rendu (pour rester fluide sur les machines modestes) :
+ *  - chaque forme (croix, étoile, halo, bulle) est pré-dessinée une seule
+ *    fois dans un petit canvas hors écran (« sprite »), puis copiée par
+ *    `drawImage` à chaque frame — bien moins cher que de retracer les
+ *    chemins (arcs, étoiles) pour chaque particule ;
+ *  - la boucle d'animation s'ARRÊTE quand il n'y a plus de particule : au
+ *    repos, plus aucune frame de canvas plein écran n'est rendue, et tout le
+ *    budget GPU revient au reste de la page (curseur compris) ;
+ *  - le nombre de particules est plafonné plus bas et le DPR est réduit sur
+ *    les très grands écrans.
  *
  * Plusieurs types, tous subtils et dans l'esprit néon de la plateforme :
  *  - `sparkles` : étincelles en croix avec un cœur brillant (effet par défaut) ;
@@ -34,8 +44,10 @@ type Spark = {
   spin: number;
 };
 
+type SpriteKind = Exclude<TrailKind, "circles" | "squares" | "astra">;
+
 /** Traduit les anciens types vers les nouveaux effets. */
-function normalizeKind(kind: TrailKind): Exclude<TrailKind, "circles" | "squares" | "astra"> {
+function normalizeKind(kind: TrailKind): SpriteKind {
   if (kind === "circles" || kind === "squares") return "dust";
   if (kind === "astra") return "sparkles";
   return kind;
@@ -64,6 +76,85 @@ function drawStar(
   context.fill();
 }
 
+/**
+ * Sprite de forme : la particule est dessinée une seule fois dans un petit
+ * canvas (rayon 16), puis copiée à chaque frame. `SIZE_FACTOR` remappe le
+ * rayon du sprite vers la taille d'origine de la particule (chaque forme a
+ * sa propre échelle dans son sprite).
+ */
+const SPRITE_RADIUS = 16;
+
+const SIZE_FACTOR: Record<SpriteKind, number> = {
+  sparkles: 2,
+  stars: 2.2,
+  snow: 3.6,
+  dust: 3.6,
+  bubbles: 1.4,
+};
+
+/** Seules les étoiles tournent (les autres formes sont symétriques). */
+function rotates(kind: SpriteKind): boolean {
+  return kind === "stars";
+}
+
+function makeSprite(kind: SpriteKind, color: string): HTMLCanvasElement {
+  const sprite = document.createElement("canvas");
+  sprite.width = SPRITE_RADIUS * 4; // ×2 pour la netteté sur écrans retina
+  sprite.height = SPRITE_RADIUS * 4;
+  const g = sprite.getContext("2d")!;
+  g.scale(2, 2);
+  g.translate(SPRITE_RADIUS, SPRITE_RADIUS);
+
+  switch (kind) {
+    case "sparkles": {
+      // Croix à quatre branches + cœur brillant.
+      g.strokeStyle = color;
+      g.lineWidth = 1;
+      g.lineCap = "round";
+      g.beginPath();
+      g.moveTo(-SPRITE_RADIUS, 0);
+      g.lineTo(SPRITE_RADIUS, 0);
+      g.moveTo(0, -SPRITE_RADIUS);
+      g.lineTo(0, SPRITE_RADIUS);
+      g.stroke();
+      g.fillStyle = color;
+      g.beginPath();
+      g.arc(0, 0, SPRITE_RADIUS * 0.35, 0, Math.PI * 2);
+      g.fill();
+      break;
+    }
+    case "stars": {
+      g.fillStyle = color;
+      drawStar(g, 0, 0, SPRITE_RADIUS, SPRITE_RADIUS * 0.45, -Math.PI / 2);
+      break;
+    }
+    case "snow":
+    case "dust": {
+      // Halo doux + cœur : un point de poussière lumineuse.
+      g.globalAlpha = 0.25;
+      g.fillStyle = color;
+      g.beginPath();
+      g.arc(0, 0, SPRITE_RADIUS, 0, Math.PI * 2);
+      g.fill();
+      g.globalAlpha = 1;
+      g.beginPath();
+      g.arc(0, 0, SPRITE_RADIUS * 0.3, 0, Math.PI * 2);
+      g.fill();
+      break;
+    }
+    case "bubbles": {
+      // Bulle creuse, contour lumineux.
+      g.strokeStyle = color;
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.arc(0, 0, SPRITE_RADIUS, 0, Math.PI * 2);
+      g.stroke();
+      break;
+    }
+  }
+  return sprite;
+}
+
 export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const normalized = normalizeKind(kind);
@@ -77,15 +168,19 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
     const context = canvas.getContext("2d");
     if (!context) return;
 
+    const sprite = makeSprite(normalized, color);
     let width = 0;
     let height = 0;
     let sparks: Spark[] = [];
     let raf = 0;
+    let running = false;
     let lastX = -1;
     let lastY = -1;
 
     function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // DPR plafonné, et abaissé sur les très grands écrans : au-delà, la
+      // résolution du canvas coûte cher pour un gain visuel imperceptible.
+      const dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth > 1920 ? 1.5 : 2);
       width = window.innerWidth;
       height = window.innerHeight;
       canvas!.width = width * dpr;
@@ -97,7 +192,9 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
     window.addEventListener("resize", resize);
 
     function emit(x: number, y: number) {
-      const count = 1 + Math.floor(Math.random() * 3);
+      // 1-2 particules par passage (avant : 1-3) : le rendu reste riche mais
+      // moins de travail par frame.
+      const count = 1 + Math.floor(Math.random() * 2);
 
       for (let i = 0; i < count; i++) {
         let vy: number;
@@ -148,8 +245,9 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
       }
 
       // Plafond : on jette les plus vieilles plutôt que d'exploser la mémoire
-      // sur un long tracé de souris.
-      if (sparks.length > 400) sparks.splice(0, sparks.length - 400);
+      // sur un long tracé de souris. 240 suffisent visuellement et limitent
+      // le coût par frame sur les machines modestes.
+      if (sparks.length > 240) sparks.splice(0, sparks.length - 240);
     }
 
     function onMove(event: MouseEvent) {
@@ -161,68 +259,29 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
       lastX = event.clientX;
       lastY = event.clientY;
       emit(event.clientX, event.clientY);
+      start();
     }
 
-    function drawParticle(spark: Spark, alpha: number) {
-      const s = spark.size;
-
-      switch (normalized) {
-        case "stars": {
-          // La couleur n'est pas héritée par `drawStar` (qui ne fait que
-          // `fill()` avec le fillStyle courant) : sans cette ligne, l'étoile
-          // resterait noire — le défaut du canvas — au lieu de prendre la
-          // couleur de traînée choisie dans le thème.
-          context!.fillStyle = color;
-          drawStar(context!, spark.x, spark.y, s, s * 0.45, spark.spin);
-          break;
-        }
-        case "snow":
-        case "dust": {
-          // Halo doux + cœur : un point de poussière lumineuse.
-          context!.beginPath();
-          context!.arc(spark.x, spark.y, s * 1.8, 0, Math.PI * 2);
-          context!.fillStyle = color;
-          context!.globalAlpha = alpha * 0.25;
-          context!.fill();
-          context!.beginPath();
-          context!.arc(spark.x, spark.y, s * 0.55, 0, Math.PI * 2);
-          context!.globalAlpha = alpha;
-          context!.fill();
-          break;
-        }
-        case "bubbles": {
-          // Bulle creuse, contour lumineux.
-          context!.beginPath();
-          context!.arc(spark.x, spark.y, s * 0.7, 0, Math.PI * 2);
-          context!.strokeStyle = color;
-          context!.lineWidth = 1;
-          context!.globalAlpha = alpha;
-          context!.stroke();
-          break;
-        }
-        default: {
-          // sparkles : croix à quatre branches + cœur brillant.
-          context!.strokeStyle = color;
-          context!.lineWidth = 1;
-          context!.globalAlpha = alpha;
-          context!.beginPath();
-          context!.moveTo(spark.x - s, spark.y);
-          context!.lineTo(spark.x + s, spark.y);
-          context!.moveTo(spark.x, spark.y - s);
-          context!.lineTo(spark.x, spark.y + s);
-          context!.stroke();
-          context!.beginPath();
-          context!.arc(spark.x, spark.y, s * 0.35, 0, Math.PI * 2);
-          context!.fillStyle = color;
-          context!.fill();
-          break;
-        }
+    function start() {
+      if (!running) {
+        running = true;
+        raf = requestAnimationFrame(frame);
       }
     }
 
     function frame() {
+      // Au repos (aucune particule), la boucle s'arrête : plus aucune frame
+      // de canvas plein écran rendue, c'est là que le budget GPU est rendu
+      // au reste de la page (curseur compris).
+      if (sparks.length === 0) {
+        context!.clearRect(0, 0, width, height);
+        running = false;
+        return;
+      }
+
       context!.clearRect(0, 0, width, height);
       context!.globalCompositeOperation = "lighter"; // addition : lueur néon
+      const factor = SIZE_FACTOR[normalized];
 
       for (let i = sparks.length - 1; i >= 0; i--) {
         const spark = sparks[i];
@@ -238,7 +297,17 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
           continue;
         }
 
-        drawParticle(spark, Math.min(1, spark.life * 1.2));
+        context!.globalAlpha = Math.min(1, spark.life * 1.2);
+        const drawSize = spark.size * factor;
+        if (rotates(normalized)) {
+          context!.save();
+          context!.translate(spark.x, spark.y);
+          context!.rotate(spark.spin);
+          context!.drawImage(sprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+          context!.restore();
+        } else {
+          context!.drawImage(sprite, spark.x - drawSize / 2, spark.y - drawSize / 2, drawSize, drawSize);
+        }
       }
 
       context!.globalAlpha = 1;
@@ -247,7 +316,6 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
     }
 
     window.addEventListener("mousemove", onMove, { passive: true });
-    raf = requestAnimationFrame(frame);
 
     return () => {
       cancelAnimationFrame(raf);

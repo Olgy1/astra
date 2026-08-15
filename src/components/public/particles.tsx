@@ -10,6 +10,16 @@ import { onEntered } from "@/components/public/entered";
  * Canvas et non des nœuds DOM animés : 200 éléments avec une animation CSS
  * chacun font tomber les téléphones d'entrée de gamme, qui sont la majorité
  * du trafic. Un seul canvas garde le coût constant.
+ *
+ * Optimisations de rendu :
+ *  - les formes coûteuses (étoiles, flocons, bulles) sont pré-dessinées une
+ *    seule fois dans un petit canvas hors écran (« sprite ») puis copiées par
+ *    `drawImage`, au lieu de retracer les chemins pour chaque particule à
+ *    chaque frame ;
+ *  - le nombre de particules s'adapte à la machine (cœurs, mémoire, taille
+ *    d'écran) : sur un appareil modeste, on en dessine moins, et le rendu
+ *    reste fluide ;
+ *  - le DPR est réduit sur les très grands écrans.
  */
 
 type Particle = {
@@ -47,6 +57,64 @@ function drawStar(
   }
   context.closePath();
   context.fill();
+}
+
+/** Rayon de la forme dans son sprite (le canvas fait le double, pour la netteté). */
+const SPRITE_RADIUS = 16;
+
+/**
+ * Sprite de forme pour les particules coûteuses à retracer (étoile, flocon,
+ * bulle). Dessiné une seule fois, puis copié par `drawImage` à chaque frame.
+ */
+function makeSprite(kind: string, color: string): HTMLCanvasElement {
+  const sprite = document.createElement("canvas");
+  sprite.width = SPRITE_RADIUS * 4;
+  sprite.height = SPRITE_RADIUS * 4;
+  const g = sprite.getContext("2d")!;
+  g.scale(2, 2);
+  g.translate(SPRITE_RADIUS, SPRITE_RADIUS);
+
+  if (kind === "stars") {
+    g.fillStyle = color;
+    drawStar(g, 0, 0, SPRITE_RADIUS, SPRITE_RADIUS * 0.45, -Math.PI / 2);
+  } else if (kind === "snow") {
+    // Halo doux + cœur.
+    g.globalAlpha = 0.25;
+    g.fillStyle = color;
+    g.beginPath();
+    g.arc(0, 0, SPRITE_RADIUS, 0, Math.PI * 2);
+    g.fill();
+    g.globalAlpha = 1;
+    g.beginPath();
+    g.arc(0, 0, SPRITE_RADIUS * 0.3, 0, Math.PI * 2);
+    g.fill();
+  } else if (kind === "bubbles") {
+    g.strokeStyle = color;
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.arc(0, 0, SPRITE_RADIUS, 0, Math.PI * 2);
+    g.stroke();
+  }
+  return sprite;
+}
+
+/**
+ * Ajuste le nombre de particules demandé à la machine : moins de cœurs, peu
+ * de mémoire ou un très grand écran → moins de particules. C'est une vraie
+ * optimisation (le rendu reste fluide sur un appareil d'entrée de gamme),
+ * pas un simple plafond fixe.
+ */
+function adaptiveCount(requested: number, width: number, height: number): number {
+  const nav = navigator as Navigator & { deviceMemory?: number; hardwareConcurrency?: number };
+  const cores = nav.hardwareConcurrency ?? 4;
+  const mem = nav.deviceMemory ?? 4;
+  let factor = 1;
+  if (cores <= 2) factor *= 0.5;
+  else if (cores <= 4) factor *= 0.8;
+  if (mem <= 2) factor *= 0.6;
+  else if (mem <= 4) factor *= 0.85;
+  if (width * height > 2_500_000) factor *= 0.75;
+  return Math.max(12, Math.round(requested * factor));
 }
 
 export function Particles({ effects }: { effects: ThemeConfig["effects"] }) {
@@ -100,17 +168,19 @@ export function Particles({ effects }: { effects: ThemeConfig["effects"] }) {
 
     function resize() {
       // devicePixelRatio : sans ça, le canvas est flou sur les écrans
-      // retina, qui sont la norme sur mobile.
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // retina, qui sont la norme sur mobile. Réduit sur les très grands
+      // écrans, où la résolution coûte cher pour un gain imperceptible.
       width = canvas!.clientWidth;
       height = canvas!.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, width > 1920 ? 1.5 : 2);
       canvas!.width = width * dpr;
       canvas!.height = height * dpr;
       context!.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
     resize();
-    particles = Array.from({ length: count }, spawn);
+    const sprite = makeSprite(kind, color);
+    particles = Array.from({ length: adaptiveCount(count, width, height) }, spawn);
 
     function draw() {
       context!.clearRect(0, 0, width, height);
@@ -134,21 +204,31 @@ export function Particles({ effects }: { effects: ThemeConfig["effects"] }) {
         context!.globalAlpha = alpha;
 
         if (kind === "stars") {
-          // Une vraie étoile à cinq branches, qui tourne lentement sur elle-
-          // même en scintillant (l'alpha oscille déjà plus haut).
-          drawStar(context!, p.x, p.y, p.size, p.size * 0.45, p.spin);
+          // Une vraie étoile à cinq branches, copiée depuis le sprite, qui
+          // tourne lentement sur elle-même en scintillant.
+          context!.save();
+          context!.translate(p.x, p.y);
+          context!.rotate(p.spin);
+          context!.drawImage(sprite, -p.size, -p.size, p.size * 2, p.size * 2);
+          context!.restore();
+        } else if (kind === "snow") {
+          // Flocon : halo + cœur, un seul drawImage.
+          const w = p.size * 3.6;
+          context!.drawImage(sprite, p.x - w / 2, p.y - w / 2, w, w);
+        } else if (kind === "bubbles") {
+          // Bulle creuse, un seul drawImage.
+          const w = p.size * 1.4;
+          context!.drawImage(sprite, p.x - w / 2, p.y - w / 2, w, w);
         } else if (kind === "rain") {
+          // Pluie : un simple rectangle, déjà bon marché.
           context!.fillRect(p.x, p.y, 1, 8 * speed);
-        } else if (kind === "confetti") {
+        } else {
+          // Confettis : un rectangle pivoté, déjà bon marché.
           context!.save();
           context!.translate(p.x, p.y);
           context!.rotate(p.spin);
           context!.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
           context!.restore();
-        } else {
-          context!.beginPath();
-          context!.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          context!.fill();
         }
       }
 
