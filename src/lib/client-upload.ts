@@ -1,6 +1,7 @@
 "use client";
 
 import type { MediaType } from "@prisma/client";
+import { inferMimeFromName } from "@/lib/media-types";
 
 /**
  * Upload de médias côté client.
@@ -91,7 +92,13 @@ async function uploadThroughServer({ file, type, biolinkId, onProgress }: Upload
 }
 
 /** Upload des gros fichiers via le CDN Cloudflare (PUT → fonction, puis confirmation). */
-async function uploadThroughCdn({ file, type, biolinkId, onProgress }: UploadFileParams): Promise<UploadResult> {
+async function uploadThroughCdn({
+  file,
+  type,
+  biolinkId,
+  mimeType,
+  onProgress,
+}: UploadFileParams & { mimeType: string }): Promise<UploadResult> {
   // 1. Le serveur valide type/taille, signe une URL d'upload B2 et renvoie
   //    l'URL de la fonction CDN qui la transférera.
   let presign: ApiResponse<{
@@ -106,7 +113,7 @@ async function uploadThroughCdn({ file, type, biolinkId, onProgress }: UploadFil
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type,
-        mimeType: file.type || "application/octet-stream",
+        mimeType,
         sizeBytes: file.size,
         biolinkId,
       }),
@@ -187,7 +194,7 @@ async function uploadThroughCdn({ file, type, biolinkId, onProgress }: UploadFil
     const response = await fetch("/api/media/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, type, biolinkId }),
+      body: JSON.stringify({ key, type, mimeType, biolinkId }),
     });
     confirm = parseJson(await response.text());
   } catch {
@@ -207,11 +214,16 @@ async function uploadThroughCdn({ file, type, biolinkId, onProgress }: UploadFil
 
 /** Upload d'un média, quel que soit le mode de stockage du serveur. */
 export async function uploadFile(params: UploadFileParams): Promise<UploadResult> {
+  // Type MIME réel du fichier. Quand le navigateur n'en fournit pas (certains
+  // formats rares comme .mpa), on le déduit de l'extension du nom — sinon la
+  // liste blanche rejetterait le fichier (HTTP 422).
+  const mimeType = params.file.type || inferMimeFromName(params.file.name) || "application/octet-stream";
+
   // Les petits fichiers passent par le serveur (un seul aller-retour). Les
   // gros — les vidéos de fond, qui dépassent la limite de Vercel — passent
   // par le CDN Cloudflare.
   if (params.file.size <= SERVER_UPLOAD_LIMIT) {
     return uploadThroughServer(params);
   }
-  return uploadThroughCdn(params);
+  return uploadThroughCdn({ ...params, mimeType });
 }

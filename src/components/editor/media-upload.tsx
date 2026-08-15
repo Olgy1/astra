@@ -19,7 +19,7 @@ const ACCEPT: Record<MediaType, string> = {
   AVATAR: "image/jpeg,image/png,image/webp,image/gif",
   BANNER: "image/jpeg,image/png,image/webp,image/gif",
   BACKGROUND: "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm",
-  AUDIO: "audio/mpeg,audio/ogg,audio/wav",
+  AUDIO: "audio/mpeg,audio/mp3,audio/ogg,audio/wav,audio/webm,audio/mp4,audio/aac,audio/flac,.mp3,.mpa,.wav,.ogg,.m4a,.aac,.flac",
   CURSOR: "image/png,image/gif,image/webp,image/x-icon,.cur,.ico",
   FONT: "font/woff,font/woff2,font/ttf,font/otf,.woff,.woff2,.ttf,.otf",
 };

@@ -84,7 +84,8 @@ export const POST = withErrorHandling(async (request: Request) => {
   }
 
   const sizeBytes = headContentLength;
-  const mimeType = headContentType || "application/octet-stream";
+  const declaredMime = input.mimeType;
+  const storedMime = headContentType || "";
   const constraint = MEDIA_CONSTRAINTS[input.type];
 
   // Deuxième contrôle, sur les valeurs réelles cette fois. La signature S3
@@ -97,10 +98,24 @@ export const POST = withErrorHandling(async (request: Request) => {
     );
   }
 
-  if (!constraint.mimeTypes.includes(mimeType)) {
+  // Le type déclaré a déjà été validé au presign et fait partie de la
+  // signature S3 : c'est la référence. Le type stocké (HEAD) sert de contrôle
+  // croisé — Backblaze renvoie parfois un type générique
+  // (application/octet-stream) même quand l'en-tête a été honoré ; dans ce
+  // cas on s'en tient au type déclaré. S'il est spécifique et différent, c'est
+  // un vrai problème.
+  if (!constraint.mimeTypes.includes(declaredMime)) {
     throw new ApiError(
       "VALIDATION_ERROR",
-      `Format non accepté pour « ${constraint.label} » : ${mimeType}.`
+      `Format non accepté pour « ${constraint.label} » : ${declaredMime}.`
+    );
+  }
+
+  const GENERIC_STORED = new Set(["", "application/octet-stream", "binary/octet-stream"]);
+  if (storedMime && !GENERIC_STORED.has(storedMime) && storedMime !== declaredMime) {
+    throw new ApiError(
+      "VALIDATION_ERROR",
+      `Le stockage a enregistré un type différent de celui annoncé (${storedMime}).`
     );
   }
 
@@ -122,7 +137,7 @@ export const POST = withErrorHandling(async (request: Request) => {
         type: input.type,
         key: input.key,
         url: s3PublicUrl(input.key),
-        mimeType,
+        mimeType: declaredMime,
         sizeBytes,
       });
 

@@ -92,7 +92,24 @@ export const MEDIA_CONSTRAINTS: Record<
   },
   AUDIO: {
     maxBytes: 12 * 1024 * 1024,
-    mimeTypes: ["audio/mpeg", "audio/ogg", "audio/wav", "audio/webm"],
+    // Liste large : les navigateurs rapportent le même fichier sous plusieurs
+    // MIME selon l'extension (.mpa, .m4a, .aac…) ou la plateforme. Le client
+    // déduit le type depuis le nom quand `File.type` est vide (voir
+    // src/lib/media-types.ts).
+    mimeTypes: [
+      "audio/mpeg",
+      "audio/mp3",
+      "audio/x-mpeg",
+      "audio/x-mp3",
+      "audio/ogg",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/webm",
+      "audio/mp4",
+      "audio/x-m4a",
+      "audio/aac",
+      "audio/flac",
+    ],
     label: "Audio d'ambiance",
   },
   CURSOR: {
@@ -118,9 +135,17 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   "video/mp4": "mp4",
   "video/webm": "webm",
   "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/x-mpeg": "mpa",
+  "audio/x-mp3": "mp3",
   "audio/ogg": "ogg",
   "audio/wav": "wav",
+  "audio/x-wav": "wav",
   "audio/webm": "weba",
+  "audio/mp4": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/aac": "aac",
+  "audio/flac": "flac",
   "font/woff": "woff",
   "font/woff2": "woff2",
   "font/ttf": "ttf",

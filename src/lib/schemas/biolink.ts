@@ -178,6 +178,9 @@ export const presignSchema = z.object({
 export const confirmMediaSchema = z.object({
   key: z.string().min(1).max(512),
   type: z.enum(["AVATAR", "BANNER", "AUDIO", "CURSOR", "BACKGROUND", "FONT"]),
+  // Type déclaré au presign : déjà validé, il sert de référence à la
+  // confirmation (le type stocké par B2 peut être générique).
+  mimeType: z.string().min(1).max(128),
   biolinkId: z.string().uuid().optional(),
 });
 

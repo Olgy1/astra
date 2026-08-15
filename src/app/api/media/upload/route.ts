@@ -3,6 +3,7 @@ import { enforce } from "@/lib/rate-limit";
 import { requireVerifiedUser } from "@/lib/auth/context";
 import { requireOwnedBiolinkRef } from "@/lib/biolinks/access";
 import { registerMediaAsset } from "@/lib/media";
+import { inferMimeFromName } from "@/lib/media-types";
 import { MEDIA_CONSTRAINTS, validateUpload } from "@/lib/s3";
 import { storeFile } from "@/lib/storage";
 import type { MediaType } from "@prisma/client";
@@ -65,8 +66,10 @@ export const POST = withErrorHandling(async (request: Request) => {
 
   // Validation sur le type MIME et la taille réels du fichier reçu, pas sur
   // ce que le client déclare. Liste blanche stricte : le SVG est exclu de
-  // tous les types image (vecteur XSS).
-  const validation = validateUpload(type, file.type, file.size);
+  // tous les types image (vecteur XSS). Quand le navigateur n'a pas fourni de
+  // type (formats rares comme .mpa), on le déduit de l'extension du nom.
+  const fileType = file.type || inferMimeFromName(file.name) || "application/octet-stream";
+  const validation = validateUpload(type, fileType, file.size);
   if (!validation.ok) {
     throw new ApiError(
       validation.reason === "TOO_LARGE" ? "PAYLOAD_TOO_LARGE" : "VALIDATION_ERROR",
@@ -82,7 +85,7 @@ export const POST = withErrorHandling(async (request: Request) => {
     throw new ApiError("PAYLOAD_TOO_LARGE", "Fichier trop volumineux.");
   }
 
-  const stored = await storeFile(user.id, type, buffer, file.type);
+  const stored = await storeFile(user.id, type, buffer, fileType);
 
   // Création en base + purge des anciens médias du même type (sauf AUDIO) +
   // invalidation du cache : voir registerMediaAsset, partagé avec le flux
@@ -94,7 +97,7 @@ export const POST = withErrorHandling(async (request: Request) => {
     type,
     key: stored.key,
     url: stored.url,
-    mimeType: file.type,
+    mimeType: fileType,
     sizeBytes: stored.sizeBytes,
   });
 
