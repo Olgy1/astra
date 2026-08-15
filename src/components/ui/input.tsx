@@ -7,7 +7,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   /** Messages d'erreur renvoyés par l'API pour ce champ. */
   errors?: string[];
   hint?: string;
-  /** Préfixe non éditable collé au champ, ex: « astra.is-a.dev/ ». */
+  /** Préfixe non éditable collé au champ, ex: « astraa.is-cool.dev/ ». */
   prefix?: string;
 };
 

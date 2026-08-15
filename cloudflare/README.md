@@ -1,11 +1,11 @@
-# CDN médias — media.astra.is-a.dev (Cloudflare Pages, sans carte bancaire)
+# CDN médias — media.astraa.is-cool.dev (Cloudflare Pages, sans carte bancaire)
 
 Objectif : servir les médias (avatars, bannières, vidéos, polices…) depuis le
 cache Cloudflare pour ne plus consommer le quota quotidien de téléchargement
 Backblaze B2. Le bucket reste **privé** — aucune carte bancaire requise.
 
 ```
-Navigateur → media.astra.is-a.dev
+Navigateur → media.astraa.is-cool.dev
                 ↓
     Cloudflare Pages (fonction cache-proxy, TON compte, gratuit)
                 ↓ (cache miss seulement, ~1×/mois/fichier)
@@ -57,7 +57,7 @@ La fonction est dans `cloudflare/media-proxy/functions/[[path]].js`.
    faudra pour le fichier DNS de l'étape D. Vérifie qu'il répond :
    `https://astra-media.pages.dev/` → page vide sans erreur.
 
-## C. Attacher media.astra.is-a.dev au projet Pages (5 min)
+## C. Attacher media.astraa.is-cool.dev au projet Pages (5 min)
 
 Le domaine appartient au projet is-a.dev (qui est sur la liste des suffixes
 publics), donc on ne peut pas l'ajouter depuis le tableau de bord Pages : il
@@ -68,9 +68,9 @@ to Cloudflare Pages »).
 1. Récupère ton **Account ID** Cloudflare : dashboard → en bas à gauche de la
    page d'accueil.
 2. Utilise **l'outil GUI** mis à disposition par is-a.dev (lien dans le guide
-   ci-dessus) pour attacher `media.astra.is-a.dev` à ton projet Pages.
+   ci-dessus) pour attacher `media.astraa.is-cool.dev` à ton projet Pages.
    - Alternative (cURL) : la commande du guide avec ton `account_id`, ton nom
-     de projet et le hostname `media.astra.is-a.dev`.
+     de projet et le hostname `media.astraa.is-cool.dev`.
 3. L'attache peut être faite **avant** le merge du PR (étape D) : le
    certificat SSL sera émis automatiquement quand le DNS pointera.
 
@@ -81,7 +81,7 @@ to Cloudflare Pages »).
 2. Dans ton fork, ouvre le dossier **`domains/`** → **Add file** →
    **Create new file**.
 3. Nom du fichier : **`media.astra.json`** (les points créent le sous-domaine
-   imbriqué `media.astra.is-a.dev`).
+   imbriqué `media.astraa.is-cool.dev`).
 4. Contenu (remplace `astra-media.pages.dev` par **ton** domaine Pages de
    l'étape B) :
    ```json
@@ -108,13 +108,13 @@ Une fois le PR mergé + DNS propagé (quelques heures) + certificat émis :
    affiche une page publiée et copie l'URL d'une image/vidéo (elle contient
    `u/{ownerId}/{type}/{uuid}.ext`).
 2. Teste dans le navigateur :
-   `https://media.astra.is-a.dev/u/{ownerId}/{type}/{uuid}.ext` → la
+   `https://media.astraa.is-cool.dev/u/{ownerId}/{type}/{uuid}.ext` → la
    ressource s'affiche.
 3. Vérifie le cache (2e chargement, en-têtes de la requête dans les DevTools) :
    `cf-cache-status: HIT`.
 4. Vérifie le streaming vidéo (Range) :
    ```bash
-   curl -sI -H "Range: bytes=0-1023" "https://media.astra.is-a.dev/<clé-vidéo>"
+   curl -sI -H "Range: bytes=0-1023" "https://media.astraa.is-cool.dev/<clé-vidéo>"
    ```
    → doit répondre **206 Partial Content**.
 
@@ -125,11 +125,11 @@ n'est pas en ligne, les médias seraient introuvables.
 
 1. Va sur **vercel.com** → ton projet **astra** → **Settings** →
    **Environment Variables**.
-2. Ajoute : clé `S3_PUBLIC_URL`, valeur `https://media.astra.is-a.dev`
+2. Ajoute : clé `S3_PUBLIC_URL`, valeur `https://media.astraa.is-cool.dev`
    (environnements **Production** et **Preview**).
 3. **Save** puis redéploie (Deployments → derniers → **Redeploy**).
 4. Vérifie : upload d'une image dans l'éditeur → l'URL renvoyée commence par
-   `https://media.astra.is-a.dev/...` et la page l'affiche. Upload d'une vidéo
+   `https://media.astraa.is-cool.dev/...` et la page l'affiche. Upload d'une vidéo
    de fond → lecture OK. Les anciennes URLs (`/api/media/file/...`) continuent
    de marcher (redirection 301 vers le CDN, sans toucher B2).
 

@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Page de signalement `astra.is-a.dev/[slug]/report`.
+ * Page de signalement `astraa.is-cool.dev/[slug]/report`.
  *
  * Accessible depuis le bouton flottant de la page bio. Ne demande aucune
  * connexion : n'importe quel visiteur peut signaler une page, le commentaire

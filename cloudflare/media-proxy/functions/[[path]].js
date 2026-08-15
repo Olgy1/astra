@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Astra — proxy média avec cache (Cloudflare Pages Function)
 //
-// Route : media.astra.is-a.dev/*
+// Route : media.astraa.is-cool.dev/*
 //
 // Rôle : servir les médias (avatars, bannières, vidéos, polices…) depuis le
 // cache Cloudflare, en ne demandant l'ORIGINE qu'en cas de cache miss.
@@ -10,7 +10,7 @@
 // ici : Cloudflare ne voit que l'URL publique de l'application.
 //
 // Flux :
-//   Navigateur → media.astra.is-a.dev → (cache Cloudflare)
+//   Navigateur → media.astraa.is-cool.dev → (cache Cloudflare)
 //                                    ↳ miss → Vercel /api/media/file/<clé> → B2
 //
 // Pourquoi une fonction : le bucket B2 reste privé (le rendre public exige

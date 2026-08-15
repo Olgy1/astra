@@ -31,8 +31,8 @@ async function hasValidToken(request: NextRequest): Promise<boolean> {
 
   try {
     await jwtVerify(token, new TextEncoder().encode(secret), {
-      issuer: "astra.is-a.dev",
-      audience: "astra.is-a.dev/api",
+      issuer: "astraa.is-cool.dev",
+      audience: "astraa.is-cool.dev/api",
       algorithms: ["HS256"],
     });
     return true;

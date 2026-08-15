@@ -1,7 +1,7 @@
 # Astra — plateforme de biolink
 
 Chaque utilisateur inscrit dispose d'une page publique personnalisable
-(`astra.is-a.dev/pseudo`) regroupant ses liens, réseaux, médias et widgets. Un
+(`astraa.is-cool.dev/pseudo`) regroupant ses liens, réseaux, médias et widgets. Un
 membre a droit à un biolink, un administrateur à autant qu'il veut, plus un
 panel de gestion de la plateforme.
 
@@ -250,9 +250,9 @@ binding natif Argon2 dans le bundle navigateur, où il ne se résout pas — et
 l'erreur ne casse pas seulement la jauge, elle casse toute la page.
 
 **Le second facteur ne se contourne pas par le jeton de défi.** `/login`
-renvoie un JWT d'audience `astra.is-a.dev/2fa` quand la 2FA est active ; il prouve
+renvoie un JWT d'audience `astraa.is-cool.dev/2fa` quand la 2FA est active ; il prouve
 seulement que le mot de passe a été validé. `verifyAccessToken` épingle
-l'audience `astra.is-a.dev/api` et rejette ce jeton, donc le présenter comme session
+l'audience `astraa.is-cool.dev/api` et rejette ce jeton, donc le présenter comme session
 ne donne aucun accès.
 
 **Quota de pages.** Limite de 1 page par défaut pour un membre, ajustable par

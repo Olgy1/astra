@@ -17,8 +17,8 @@ import { serverEnv } from "@/lib/env";
  * réellement effective.
  */
 
-const ACCESS_ISSUER = "astra.is-a.dev";
-const ACCESS_AUDIENCE = "astra.is-a.dev/api";
+const ACCESS_ISSUER = "astraa.is-cool.dev";
+const ACCESS_AUDIENCE = "astraa.is-cool.dev/api";
 
 export type AccessTokenClaims = {
   sub: string;
@@ -90,7 +90,7 @@ function isAccessPayload(
 // Jeton de défi 2FA
 // ---------------------------------------------------------------------------
 
-const CHALLENGE_AUDIENCE = "astra.is-a.dev/2fa";
+const CHALLENGE_AUDIENCE = "astraa.is-cool.dev/2fa";
 
 /**
  * Émis par /login quand le mot de passe est bon mais que la 2FA est active.

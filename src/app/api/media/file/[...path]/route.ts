@@ -80,7 +80,7 @@ export async function GET(
     "Cache-Control": "public, max-age=31536000, immutable",
     "X-Content-Type-Options": "nosniff",
     // Les médias sont publics et peuvent être affichés depuis n'importe
-    // quelle origine (futur domaine is-a.dev, polices chargées en CORS...).
+    // quelle origine (futur domaine astraa.is-cool.dev, polices chargées en CORS...).
     "Access-Control-Allow-Origin": "*",
   };
 

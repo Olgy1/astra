@@ -15,7 +15,7 @@ function isSuspended(page: { suspendedUntil: string | null }): boolean {
 }
 
 /**
- * Page publique `astra.is-a.dev/[slug]`.
+ * Page publique `astraa.is-cool.dev/[slug]`.
  *
  * Rendue côté serveur : le contenu est dans le HTML initial, indexable et
  * partageable. Les effets (particules, tilt, compteurs) sont des îlots

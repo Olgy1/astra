@@ -173,9 +173,9 @@ export function buildMediaKey(
 /**
  * URL publique d'une clé.
  *
- * Avec `S3_PUBLIC_URL` (ex. `https://media.astra.is-a.dev`, un CDN Cloudflare
+ * Avec `S3_PUBLIC_URL` (ex. `https://media.astraa.is-cool.dev`, un CDN Cloudflare
  * devant le bucket), les médias sont servis directement depuis le CDN : URL
- * absolue `https://media.astra.is-a.dev/<clé>`. Sans ce réglage (dev local,
+ * absolue `https://media.astraa.is-cool.dev/<clé>`. Sans ce réglage (dev local,
  * CDN pas encore en place), on retombe sur le proxy de l'application
  * `/api/media/file/...` qui lit depuis S3 avec la clé d'application.
  *

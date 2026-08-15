@@ -16,7 +16,7 @@ const querySchema = z.object({ slug: z.string().max(64) });
  * Disponibilité d'un lien, pour le champ de la landing et de l'éditeur.
  *
  * Public, mais rate-limité : l'endpoint permet de savoir quels pseudos sont
- * pris, ce qui est de toute façon lisible en visitant astra.is-a.dev/pseudo. Le
+ * pris, ce qui est de toute façon lisible en visitant astraa.is-cool.dev/pseudo. Le
  * plafond existe pour empêcher d'en aspirer la liste complète.
  *
  * La réponse est indicative et ne réserve rien : entre ce contrôle et la
