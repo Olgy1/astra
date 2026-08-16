@@ -204,6 +204,12 @@ export function AppearancePanel() {
           vous pouvez uploader une police personnalisée.
         </p>
         <ToggleControl label="Titre en dégradé animé" checked={theme.typography.titleGradient} onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, titleGradient: v } }))} />
+        {theme.typography.titleGradient && (
+          <>
+            <ColorControl label="Couleur 1 du dégradé" value={theme.typography.titleGradientColor1 ?? theme.typography.textColor} onChange={(titleGradientColor1) => updateTheme((c) => ({ ...c, typography: { ...c.typography, titleGradientColor1 } }))} />
+            <ColorControl label="Couleur 2 du dégradé" value={theme.typography.titleGradientColor2 ?? theme.typography.accentColor} onChange={(titleGradientColor2) => updateTheme((c) => ({ ...c, typography: { ...c.typography, titleGradientColor2 } }))} />
+          </>
+        )}
         <ToggleControl label="Halo néon sur le texte" checked={theme.typography.textGlow} onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, textGlow: v } }))} />
         {theme.typography.textGlow && (
           <>

@@ -102,6 +102,13 @@ export const typographySchema = z.object({
   textGlowIntensity: z.number().min(0).max(30).default(12),
   /** Rend le pseudo/titre en dégradé texte → accent, animé en boucle. */
   titleGradient: z.boolean().default(false),
+  /**
+   * Couleurs du dégradé animé du titre. Absentes (pages existantes) : le
+   * dégradé suit les couleurs texte → accent de la page, comme avant.
+   * Présentes : le titre utilise ces deux couleurs, fixes.
+   */
+  titleGradientColor1: hexColor.optional(),
+  titleGradientColor2: hexColor.optional(),
 });
 
 export const cardSchema = z.object({

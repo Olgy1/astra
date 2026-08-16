@@ -117,7 +117,7 @@ export function HeaderBlock({ config, page, theme }: BlockProps<HeaderBlockConfi
       <h1
         className={`${titleSizeClass} font-bold leading-tight ${
           gradientTitle
-            ? "bg-[linear-gradient(90deg,var(--page-text),var(--page-accent),var(--page-text))] bg-[length:200%_auto] bg-clip-text text-transparent [animation:sparkle_4s_linear_infinite]"
+            ? "bg-[linear-gradient(90deg,var(--title-gradient-1),var(--title-gradient-2),var(--title-gradient-1))] bg-[length:200%_auto] bg-clip-text text-transparent [animation:sparkle_4s_linear_infinite]"
             : ""
         }`}
         style={{ fontFamily: titleFont }}

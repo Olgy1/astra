@@ -42,6 +42,11 @@ export function themeToCssVars(theme: ThemeConfig): ThemeVars {
     "--page-text": typography.textColor,
     "--page-accent": typography.accentColor,
     "--page-muted": typography.mutedColor,
+    // Couleurs du dégradé animé du titre : celles choisies si présentes,
+    // sinon texte → accent de la page (comportement d'origine).
+    "--title-gradient-1": typography.titleGradientColor1 ?? typography.textColor,
+    "--title-gradient-2": typography.titleGradientColor2 ?? typography.accentColor,
+
     // La police globale ne suit plus une police custom (l'upload global a
     // été retiré : la custom ne vit plus que dans le block En-tête). Un
     // ancien `customFontUrl` traînant en base ne doit donc pas écraser le
