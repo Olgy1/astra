@@ -8,6 +8,25 @@
  * serveur.
  */
 
+/**
+ * Taille maximale acceptée par le chemin serveur, par type de média.
+ *
+ * Copie client de `MEDIA_CONSTRAINTS` (src/lib/s3.ts), qui vit côté serveur
+ * (elle importe le SDK AWS). Le client s'en sert pour choisir le chemin
+ * d'upload : un fichier qui dépasse la limite serveur de SON type part par
+ * le CDN Cloudflare (jusqu'à 95 Mo), même s'il reste sous la limite de body
+ * de Vercel (4,5 Mo) — c'est le cas typique d'un curseur PNG > 512 Ko, ou
+ * d'une police > 2 Mo.
+ */
+export const MEDIA_MAX_BYTES: Record<string, number> = {
+  AVATAR: 5 * 1024 * 1024,
+  BANNER: 8 * 1024 * 1024,
+  BACKGROUND: 256 * 1024 * 1024,
+  AUDIO: 12 * 1024 * 1024,
+  CURSOR: 512 * 1024,
+  FONT: 2 * 1024 * 1024,
+};
+
 const EXTENSION_MIME: Record<string, string> = {
   // Images
   png: "image/png",

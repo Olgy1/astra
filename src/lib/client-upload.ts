@@ -1,7 +1,7 @@
 "use client";
 
 import type { MediaType } from "@prisma/client";
-import { inferMimeFromName } from "@/lib/media-types";
+import { inferMimeFromName, MEDIA_MAX_BYTES } from "@/lib/media-types";
 
 /**
  * Upload de médias côté client.
@@ -228,9 +228,12 @@ export async function uploadFile(params: UploadFileParams): Promise<UploadResult
       : inferMimeFromName(params.file.name) || browserType || "application/octet-stream";
 
   // Les petits fichiers passent par le serveur (un seul aller-retour). Les
-  // gros — les vidéos de fond, qui dépassent la limite de Vercel — passent
-  // par le CDN Cloudflare.
-  if (params.file.size <= SERVER_UPLOAD_LIMIT) {
+  // autres passent par le CDN Cloudflare : au-delà de la limite de body de
+  // Vercel (~4,5 Mo), OU au-delà de la limite propre au type (le serveur
+  // refuse un curseur PNG > 512 Ko même s'il tient dans 4,5 Mo — le CDN,
+  // lui, accepte jusqu'à 95 Mo, pour n'importe quel type).
+  const typeLimit = MEDIA_MAX_BYTES[params.type] ?? Number.POSITIVE_INFINITY;
+  if (params.file.size <= SERVER_UPLOAD_LIMIT && params.file.size <= typeLimit) {
     return uploadThroughServer(params);
   }
   return uploadThroughCdn({ ...params, mimeType });
