@@ -67,8 +67,12 @@ export const POST = withErrorHandling(async (request: Request) => {
   // Validation sur le type MIME et la taille réels du fichier reçu, pas sur
   // ce que le client déclare. Liste blanche stricte : le SVG est exclu de
   // tous les types image (vecteur XSS). Quand le navigateur n'a pas fourni de
-  // type (formats rares comme .mpa), on le déduit de l'extension du nom.
-  const fileType = file.type || inferMimeFromName(file.name) || "application/octet-stream";
+  // type (formats rares comme .mpa, fichiers .cur/.ico → octet-stream), on le
+  // déduit de l'extension du nom.
+  const fileType =
+    file.type && file.type !== "application/octet-stream"
+      ? file.type
+      : inferMimeFromName(file.name) || "application/octet-stream";
   const validation = validateUpload(type, fileType, file.size);
   if (!validation.ok) {
     throw new ApiError(

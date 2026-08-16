@@ -37,8 +37,14 @@ export async function onRequest(context) {
   const key = url.pathname.replace(/^\/+/, "");
 
   // On ne sert que les clés de médias de l'app (u/{ownerId}/{type}/...).
+  // Les en-têtes CORS sont présents même sur les erreurs : sans eux, un
+  // navigateur qui charge un média (canvas de recadrage, @font-face) verrait
+  // une erreur CORS au lieu d'une erreur HTTP compréhensible.
   if (!key || !key.startsWith("u/") || key.includes("..")) {
-    return new Response("Not found", { status: 404 });
+    return new Response("Not found", {
+      status: 404,
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
   }
 
   const origin = (env.MEDIA_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, "");
@@ -82,9 +88,11 @@ export async function onRequest(context) {
   });
 
   if (!originResponse.ok) {
+    const headers = new Headers(originResponse.headers);
+    headers.set("Access-Control-Allow-Origin", "*");
     return new Response(await originResponse.text(), {
       status: originResponse.status,
-      headers: originResponse.headers,
+      headers,
     });
   }
 

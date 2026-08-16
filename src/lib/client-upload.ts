@@ -6,17 +6,19 @@ import { inferMimeFromName } from "@/lib/media-types";
 /**
  * Upload de médias côté client.
  *
- * Deux chemins, choisis selon la taille du fichier :
+ * Deux chemins, choisis selon la taille du fichier — quel que soit le type
+ * de média (avatar, bannière, fond, curseur, police, audio) :
  *  - **petit fichier** (≤ 4,5 Mo) : multipart via `/api/media/upload`. Le
  *    serveur valide, écrit sur le stockage (local ou S3) et enregistre en
  *    base. Simple : un seul aller-retour.
- *  - **gros fichier** (> 4,5 Mo — la limite de body de Vercel, typiquement
- *    les vidéos de fond) : via le CDN Cloudflare. Le serveur signe une URL
- *    d'upload B2 (`/api/media/presign`), le navigateur envoie le fichier à
- *    la fonction Cloudflare Pages du CDN médias (`/upload`), qui le
- *    transfère vers B2 en serveur-à-serveur — aucun CORS de bucket à
- *    configurer, aucune clé B2 dans le navigateur. Une confirmation
- *    (`/api/media/confirm`) enregistre ensuite l'asset en base.
+ *  - **gros fichier** (> 4,5 Mo — la limite de body de Vercel) : via le CDN
+ *    Cloudflare. Le serveur signe une URL d'upload B2 (`/api/media/presign`),
+ *    le navigateur envoie le fichier à la fonction Cloudflare Pages du CDN
+ *    médias (`/upload`), qui le transfère vers B2 en serveur-à-serveur —
+ *    aucun CORS de bucket à configurer, aucune clé B2 dans le navigateur.
+ *    Une confirmation (`/api/media/confirm`) enregistre ensuite l'asset en
+ *    base. Le flux CDN n'est borné que par le plafond de la fonction (95 Mo),
+ *    pas par la limite par type du serveur.
  *
  * Dans les deux cas le navigateur ne parle qu'à l'API du site ou au CDN,
  * jamais directement au bucket.
@@ -214,10 +216,16 @@ async function uploadThroughCdn({
 
 /** Upload d'un média, quel que soit le mode de stockage du serveur. */
 export async function uploadFile(params: UploadFileParams): Promise<UploadResult> {
-  // Type MIME réel du fichier. Quand le navigateur n'en fournit pas (certains
-  // formats rares comme .mpa), on le déduit de l'extension du nom — sinon la
-  // liste blanche rejetterait le fichier (HTTP 422).
-  const mimeType = params.file.type || inferMimeFromName(params.file.name) || "application/octet-stream";
+  // Type MIME réel du fichier. Quand le navigateur n'en fournit pas ou
+  // renvoie un type générique (certains formats rares comme .mpa, ou les
+  // fichiers .cur/.ico sur certains navigateurs → application/octet-stream),
+  // on le déduit de l'extension du nom — sinon la liste blanche rejetterait
+  // le fichier (HTTP 422).
+  const browserType = params.file.type;
+  const mimeType =
+    browserType && browserType !== "application/octet-stream"
+      ? browserType
+      : inferMimeFromName(params.file.name) || browserType || "application/octet-stream";
 
   // Les petits fichiers passent par le serveur (un seul aller-retour). Les
   // gros — les vidéos de fond, qui dépassent la limite de Vercel — passent

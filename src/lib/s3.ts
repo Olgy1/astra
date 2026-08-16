@@ -158,11 +158,20 @@ export type UploadValidationError =
 
 export type UploadValidationResult = { ok: true } | UploadValidationError;
 
-/** Valide type MIME et taille annoncés avant de signer l'URL. */
+/**
+ * Valide type MIME et taille annoncés avant de signer l'URL.
+ *
+ * `maxBytesOverride` est utilisé par le flux CDN (gros fichiers) : la limite
+ * Vercel (~4,5 Mo) ne s'applique pas au transfert via la fonction Cloudflare,
+ * donc n'importe quel type de média peut y passer au-delà de sa limite
+ * serveur — seul le plafond du CDN (95 Mo) le borne. Sans override, on garde
+ * la contrainte du type (chemin serveur).
+ */
 export function validateUpload(
   type: MediaType,
   mimeType: string,
-  sizeBytes: number
+  sizeBytes: number,
+  maxBytesOverride?: number
 ): UploadValidationResult {
   const constraint = MEDIA_CONSTRAINTS[type];
 
@@ -174,8 +183,9 @@ export function validateUpload(
     };
   }
 
-  if (sizeBytes > constraint.maxBytes) {
-    const maxMb = Math.round(constraint.maxBytes / 1024 / 1024);
+  const maxBytes = maxBytesOverride ?? constraint.maxBytes;
+  if (sizeBytes > maxBytes) {
+    const maxMb = Math.round(maxBytes / 1024 / 1024);
     return {
       ok: false,
       reason: "TOO_LARGE",

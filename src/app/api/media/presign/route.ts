@@ -44,19 +44,21 @@ export const POST = withErrorHandling(async (request: Request) => {
     await requireOwnedBiolinkRef(user, input.biolinkId);
   }
 
-  const validation = validateUpload(input.type, input.mimeType, input.sizeBytes);
+  // Le flux CDN ne passe pas par la limite de body de Vercel : on borne par
+  // le plafond de la fonction Cloudflare (95 Mo), quel que soit le type de
+  // média. La liste blanche MIME du type reste appliquée.
+  const validation = validateUpload(
+    input.type,
+    input.mimeType,
+    input.sizeBytes,
+    CDN_MAX_UPLOAD_BYTES
+  );
 
   if (!validation.ok) {
     throw new ApiError(
       validation.reason === "TOO_LARGE" ? "PAYLOAD_TOO_LARGE" : "VALIDATION_ERROR",
       validation.message
     );
-  }
-
-  // La fonction Cloudflare plafonne le body à 100 Mo : refuser avant, avec un
-  // message clair, plutôt qu'un échec opaque au moment de l'upload.
-  if (input.sizeBytes > CDN_MAX_UPLOAD_BYTES) {
-    throw new ApiError("PAYLOAD_TOO_LARGE", "Fichier trop volumineux pour le CDN : 95 Mo maximum.");
   }
 
   // L'URL d'upload du CDN dérive de S3_PUBLIC_URL (ex. https://media.astraa.is-cool.dev).
