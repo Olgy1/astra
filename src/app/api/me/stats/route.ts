@@ -58,16 +58,25 @@ export const GET = withErrorHandling(async (request: Request) => {
       .map(([label, value]) => ({ label, value }));
   };
 
+  // Série temporelle pour le graphe : un point par jour sur toute la fenêtre,
+  // jours sans activité inclus (à zéro). Sans ce remplissage, le graphe
+  // n'afficherait que les jours actifs et donnerait une fausse impression de
+  // discontinuité (voir stats-view.tsx).
+  const rowByDay = new Map(rows.map((row) => [row.date.toISOString().slice(0, 10), row]));
+  const timeline: { date: string; views: number; uniqueViews: number }[] = [];
+  for (let i = 0; i < days; i++) {
+    const day = new Date(since);
+    day.setUTCDate(since.getUTCDate() + i);
+    const key = day.toISOString().slice(0, 10);
+    const row = rowByDay.get(key);
+    timeline.push({ date: key, views: row?.views ?? 0, uniqueViews: row?.uniqueViews ?? 0 });
+  }
+
   return ok({
     totalViews: biolink.totalViews,
     periodViews: rows.reduce((sum, row) => sum + row.views, 0),
     periodUniqueViews: rows.reduce((sum, row) => sum + row.uniqueViews, 0),
-    // Série temporelle pour le graphe, un point par jour.
-    timeline: rows.map((row) => ({
-      date: row.date.toISOString().slice(0, 10),
-      views: row.views,
-      uniqueViews: row.uniqueViews,
-    })),
+    timeline,
     linksByClicks: [...biolink.links].sort((a, b) => b.clicks - a.clicks),
     referrers: merge("referrers"),
     devices: merge("devices"),

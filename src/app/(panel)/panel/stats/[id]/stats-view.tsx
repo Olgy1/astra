@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api-client";
+import { AreaChart } from "@/components/ui/area-chart";
 
 type Stats = {
   totalViews: number;
@@ -25,6 +26,14 @@ function formatCompact(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(".", ",")} M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(".", ",")} k`;
   return String(value);
+}
+
+/** Libellé court d'une date ISO (« 2026-08-16 ») pour l'axe du graphe. */
+function shortDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 /** Libellé français d'une provenance : inconnue ou URL raccourcie. */
@@ -54,7 +63,6 @@ export function StatsView({ biolinkId, slug }: { biolinkId: string; slug: string
     };
   }, [biolinkId, range]);
 
-  const maxViews = Math.max(1, ...(stats?.timeline.map((point) => point.views) ?? [1]));
   const maxClicks = Math.max(1, ...(stats?.linksByClicks.map((link) => link.clicks) ?? [1]));
   const maxSource = Math.max(1, ...(stats?.referrers.map((entry) => entry.value) ?? [1]));
 
@@ -110,27 +118,26 @@ export function StatsView({ biolinkId, slug }: { biolinkId: string; slug: string
 
           <section className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
             <h2 className="text-sm font-medium">Évolution des vues</h2>
-            {stats.timeline.length === 0 ? (
-              <p className="mt-3 text-sm text-content-muted">Aucune vue sur cette période.</p>
-            ) : (
-              <div className="mt-4 flex h-40 items-end gap-1">
-                {stats.timeline.map((point) => (
-                  <div
-                    key={point.date}
-                    className="group relative flex flex-1 flex-col justify-end"
-                    title={`${point.date} : ${point.views} ${point.views === 0 || point.views === 1 ? "vue" : "vues"}`}
-                  >
-                    <div
-                      className="w-full rounded-t bg-accent/70 transition-colors hover:bg-accent"
-                      style={{ height: `${Math.max(3, (point.views / maxViews) * 100)}%` }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="mt-2 text-right text-xs text-content-muted">
-              {stats.timeline.length > 0 ? `${stats.timeline.length} jour(s) affichés` : ""}
-            </p>
+            <div className="mt-4">
+              <AreaChart
+                labels={stats.timeline.map((point) => point.date)}
+                series={[
+                  {
+                    name: "Vues",
+                    values: stats.timeline.map((point) => point.views),
+                    color: "var(--color-accent)",
+                    filled: true,
+                  },
+                  {
+                    name: "Visiteurs uniques",
+                    values: stats.timeline.map((point) => point.uniqueViews),
+                    color: "var(--color-success)",
+                  },
+                ]}
+                formatX={shortDate}
+                valueFormatter={(value) => value.toLocaleString("fr-FR")}
+              />
+            </div>
           </section>
 
           <section className="grid gap-4 lg:grid-cols-2">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
+import { AreaChart } from "@/components/ui/area-chart";
 
 type Stats = {
   totals: {
@@ -19,10 +20,19 @@ type Stats = {
     signupsLast7: number;
   };
   signupsByDay: { date: string; count: number }[];
+  viewsByDay: { date: string; views: number; uniqueViews: number }[];
 };
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("fr-FR").format(value);
+}
+
+/** Libellé court d'une date ISO (« 2026-08-16 ») pour l'axe du graphe. */
+function shortDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 export function DashboardView() {
@@ -81,7 +91,6 @@ export function DashboardView() {
   }
 
   const { totals } = stats;
-  const maxSignups = Math.max(1, ...stats.signupsByDay.map((day) => day.count));
 
   const cards = [
     { label: "Utilisateurs", value: formatNumber(totals.users), accent: false },
@@ -142,27 +151,48 @@ export function DashboardView() {
         </button>
       </section>
 
+      <section className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
+        <h2 className="text-sm font-medium">Vues — 14 derniers jours</h2>
+        <div className="mt-4">
+          <AreaChart
+            labels={stats.viewsByDay.map((day) => day.date)}
+            series={[
+              {
+                name: "Vues",
+                values: stats.viewsByDay.map((day) => day.views),
+                color: "var(--color-accent)",
+                filled: true,
+              },
+              {
+                name: "Visiteurs uniques",
+                values: stats.viewsByDay.map((day) => day.uniqueViews),
+                color: "var(--color-success)",
+              },
+            ]}
+            formatX={shortDate}
+            valueFormatter={(value) => formatNumber(value)}
+          />
+        </div>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
           <h2 className="text-sm font-medium">Inscriptions — 14 derniers jours</h2>
-          {stats.signupsByDay.every((day) => day.count === 0) ? (
-            <p className="mt-3 text-sm text-content-muted">Aucune inscription sur la période.</p>
-          ) : (
-            <div className="mt-4 flex h-32 items-end gap-1">
-              {stats.signupsByDay.map((day) => (
-                <div
-                  key={day.date}
-                  className="group relative flex flex-1 flex-col justify-end"
-                  title={`${day.date} : ${day.count} inscription(s)`}
-                >
-                  <div
-                    className="w-full rounded-t bg-accent/70 transition-colors group-hover:bg-accent"
-                    style={{ height: `${Math.max(3, (day.count / maxSignups) * 100)}%` }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="mt-4">
+            <AreaChart
+              labels={stats.signupsByDay.map((day) => day.date)}
+              series={[
+                {
+                  name: "Inscriptions",
+                  values: stats.signupsByDay.map((day) => day.count),
+                  color: "var(--color-accent)",
+                  filled: true,
+                },
+              ]}
+              formatX={shortDate}
+              valueFormatter={(value) => formatNumber(value)}
+            />
+          </div>
         </div>
 
         <div className="rounded-2xl border border-border-subtle bg-surface-1 p-4">

@@ -61,6 +61,31 @@ export const GET = withErrorHandling(async () => {
     });
   }
 
+  // Vues et visiteurs uniques par jour sur les 14 derniers jours, agrégés sur
+  // toutes les pages, pour le graphe du tableau de bord.
+  const analyticsRows = await prisma.analytics.findMany({
+    where: { date: { gte: since } },
+    select: { date: true, views: true, uniqueViews: true },
+  });
+
+  const viewsAccumulator = new Map<string, { views: number; uniqueViews: number }>();
+  for (const row of analyticsRows) {
+    const key = row.date.toISOString().slice(0, 10);
+    const acc = viewsAccumulator.get(key) ?? { views: 0, uniqueViews: 0 };
+    acc.views += row.views;
+    acc.uniqueViews += row.uniqueViews;
+    viewsAccumulator.set(key, acc);
+  }
+
+  const viewsByDay: { date: string; views: number; uniqueViews: number }[] = [];
+  for (let i = 0; i < 14; i++) {
+    const day = new Date(since);
+    day.setUTCDate(since.getUTCDate() + i);
+    const key = day.toISOString().slice(0, 10);
+    const acc = viewsAccumulator.get(key);
+    viewsByDay.push({ date: key, views: acc?.views ?? 0, uniqueViews: acc?.uniqueViews ?? 0 });
+  }
+
   return ok({
     totals: {
       users: totalUsers,
@@ -76,5 +101,6 @@ export const GET = withErrorHandling(async () => {
       signupsLast7,
     },
     signupsByDay,
+    viewsByDay,
   });
 });
