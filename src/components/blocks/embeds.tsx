@@ -157,7 +157,7 @@ export function RedditBlock({ config }: BlockProps<RedditBlockConfig>) {
       href={href}
       target="_blank"
       rel="noopener noreferrer nofollow"
-      className="flex items-center gap-3 p-4 transition-transform hover:scale-[1.01]"
+      className="flex items-center gap-3 p-4 transition-transform hover:scale-[1.01] active:scale-[0.99]"
       style={{
         // Même recette carte que le block Discord : opacité, flou, bordure et
         // lueur. Le lien Reddit doit avoir l'air d'un morceau de la carte.
@@ -256,7 +256,7 @@ export function DiscordServerBlock({ config, theme }: BlockProps<DiscordServerBl
       href={href}
       target="_blank"
       rel="noopener noreferrer nofollow"
-      className="flex items-center gap-3 p-4 transition-transform hover:scale-[1.01]"
+      className="flex items-center gap-3 p-4 transition-transform hover:scale-[1.01] active:scale-[0.99]"
       style={{
         // Exactement la même recette que la carte (et que le lecteur de
         // musique) : fond à l'opacité de la carte, flou, bordure, ombre et

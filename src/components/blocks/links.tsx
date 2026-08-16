@@ -91,6 +91,9 @@ export function LinksBlock({ config, page, theme }: BlockProps<LinksBlockConfig>
               "flex min-h-[44px] items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200",
               BUTTON_STYLES[config.buttonStyle],
               HOVER_EFFECTS[config.hoverEffect],
+              // Même retour tactile que les autres boutons de la page :
+              // le lien s'enfonce légèrement au clic.
+              "active:scale-[0.98]",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -318,7 +321,7 @@ export function CtaButtonBlock({ config, theme }: BlockProps<CtaButtonBlockConfi
       target={config.newTab ? "_blank" : undefined}
       rel="noopener noreferrer nofollow"
       className={[
-        "inline-flex items-center justify-center gap-2 font-semibold transition-transform hover:scale-[1.02]",
+        "inline-flex items-center justify-center gap-2 font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98]",
         CTA_VARIANTS[config.variant],
         CTA_SIZES[config.size],
         config.fullWidth ? "w-full" : "",

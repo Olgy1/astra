@@ -45,7 +45,11 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={[
-        "inline-flex items-center justify-center gap-2 font-medium transition-colors",
+        "inline-flex items-center justify-center gap-2 font-medium transition-[color,background-color,border-color,transform]",
+        // Retour tactile au clic : le bouton s'enfonce très légèrement,
+        // comme les pastilles du lecteur de musique et des réseaux sociaux.
+        // Un seul langage de pression dans toute l'app.
+        "active:scale-[0.98]",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANTS[variant],
         SIZES[size],
