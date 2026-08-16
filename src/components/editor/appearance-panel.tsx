@@ -152,7 +152,16 @@ export function AppearancePanel() {
         <MediaUpload
           type="AVATAR"
           currentUrl={avatarUrl}
-          onUploaded={(asset) => replaceMedia("AVATAR", asset)}
+          onUploaded={(asset) => {
+            replaceMedia("AVATAR", asset);
+            // Un upload explicite prend le dessus sur l'avatar Discord : sans
+            // ça, l'image choisie serait masquée par le toggle « Utiliser
+            // l'avatar Discord » et l'utilisateur croirait que l'upload ne
+            // marche pas.
+            if (theme.avatar.useDiscord) {
+              updateTheme((c) => ({ ...c, avatar: { ...c.avatar, useDiscord: false } }));
+            }
+          }}
           onCleared={() => setMedia(biolink.media.filter((m) => m.type !== "AVATAR"))}
         />
         {avatarUrl && (

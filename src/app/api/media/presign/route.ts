@@ -59,7 +59,7 @@ export const POST = withErrorHandling(async (request: Request) => {
     throw new ApiError("PAYLOAD_TOO_LARGE", "Fichier trop volumineux pour le CDN : 95 Mo maximum.");
   }
 
-  // L'URL d'upload du CDN dérive de S3_PUBLIC_URL (ex. https://astra-media.pages.dev).
+  // L'URL d'upload du CDN dérive de S3_PUBLIC_URL (ex. https://media.astraa.is-cool.dev).
   const cdnBase = (serverEnv().S3_PUBLIC_URL ?? "").replace(/\/+$/, "");
   if (!cdnBase) {
     throw new ApiError(

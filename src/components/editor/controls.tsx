@@ -22,6 +22,21 @@ export function ColorControl({
 }) {
   const id = useId();
 
+  // Saisie locale : pendant qu'on tape, la valeur peut être temporairement
+  // invalide ("#f", "#ff"…). On ne remonte au store que les hex valides —
+  // sinon une couleur à moitié tapée invaliderait tout le thème, et le parse
+  // (qui retombe sur le défaut en cas d'échec) remettrait TOUS les réglages
+  // à zéro.
+  const [draft, setDraft] = useState(value);
+
+  // Resynchronise le champ quand la valeur change par ailleurs (annulation,
+  // préréglage de thème, sélecteur natif…).
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
   // Le sélecteur natif ne gère pas l'alpha (#rrggbbaa). On le tronque à 6
   // chiffres pour lui, tout en laissant le champ texte accepter la version
   // complète — sinon régler une transparence serait impossible.
@@ -35,8 +50,13 @@ export function ColorControl({
       <div className="flex items-center gap-2">
         <input
           type="text"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
+          value={draft}
+          onChange={(event) => {
+            const next = event.target.value;
+            setDraft(next);
+            if (HEX_RE.test(next)) onChange(next);
+          }}
+          onBlur={() => setDraft(value)}
           className="w-24 rounded-lg border border-border-subtle bg-surface-1 px-2 py-1 text-xs outline-none focus:border-accent"
           aria-label={`${label} (code hexadécimal)`}
         />
@@ -44,7 +64,11 @@ export function ColorControl({
           id={id}
           type="color"
           value={hex6}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            const next = event.target.value;
+            setDraft(next);
+            onChange(next);
+          }}
           className="size-8 cursor-pointer rounded-lg border border-border-subtle bg-transparent"
         />
       </div>

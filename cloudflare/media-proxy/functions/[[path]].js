@@ -27,7 +27,7 @@
 // URL de l'application qui sert les médias (le proxy Next.js). À remplacer
 // par ton domaine de production, ou à définir comme variable d'environnement
 // MEDIA_ORIGIN dans le projet Pages (recommandé : pas de code à modifier).
-const DEFAULT_ORIGIN = "https://astra-wheat-psi.vercel.app";
+const DEFAULT_ORIGIN = "https://astraa.is-cool.dev";
 
 
 
