@@ -7,23 +7,18 @@ import { recordView } from "@/lib/biolinks/public";
 
 const bodySchema = z.object({
   referrer: z.string().max(255).optional(),
-  // Identifiant aléatoire du navigateur (localStorage), généré par
-  // ViewTracker. Hashé avant stockage : la base ne contient jamais
-  // d'identifiant de navigateur en clair.
-  visitorId: z.string().min(8).max(64).optional(),
 });
 
-/** Fenêtre pendant laquelle un navigateur déjà vu reste « non unique ». */
+/** Fenêtre pendant laquelle une adresse IP déjà vue reste « non unique ». */
 const UNIQUE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
  * POST /api/public/:slug/view
  *
- * Enregistre une vue. Une vue unique = un navigateur pas encore vu sur cette
- * page dans les 24 dernières heures. Le navigateur envoie un identifiant
- * aléatoire persistant (localStorage) ; la table `view_fingerprints` porte le
- * dédoublonnage, sans cookie tiers ni stockage d'IP — ça fonctionne même sans
- * Redis.
+ * Enregistre une vue. Une vue unique = une adresse IP pas encore vue sur cette
+ * page dans les 24 dernières heures. L'IP n'est jamais stockée en clair : on
+ * hache (SHA-256) et c'est ce hachage que porte la table `view_fingerprints`
+ * pour le dédoublonnage, sans cookie tiers.
  */
 export const POST = withErrorHandling(
   async (request: Request, context: { params: Promise<{ slug: string }> }) => {
@@ -49,41 +44,51 @@ export const POST = withErrorHandling(
     const userAgent = request.headers.get("user-agent") ?? "";
     const device = /mobile|android|iphone/i.test(userAgent) ? "mobile" : "desktop";
 
-    // Dédoublonnage par navigateur : une empreinte déjà vue dans les 24 h ne
-    // compte pas comme unique. Deux requêtes simultanées du même navigateur
-    // sont sérialisées par la contrainte UNIQUE (biolink_id, fingerprint).
+    // Dédoublonnage par adresse IP : une IP déjà vue dans les 24 h ne compte
+    // pas comme unique. On stocke un hash SHA-256, jamais l'IP en clair. La
+    // contrainte UNIQUE (biolink_id, fingerprint) ferme la course entre deux
+    // requêtes simultanées de la même IP : on rattrape la violation au lieu
+    // d'échouer.
+    const fingerprint = createHash("sha256")
+      .update(`ip:${clientIp(request)}`)
+      .digest("base64url")
+      .slice(0, 32);
+
     let unique = false;
-    if (data.visitorId) {
-      const fingerprint = createHash("sha256")
-        .update(`view:${data.visitorId}`)
-        .digest("base64url")
-        .slice(0, 32);
+    const existing = await prisma.viewFingerprint.findUnique({
+      where: { biolinkId_fingerprint: { biolinkId: biolink.id, fingerprint } },
+    });
 
-      const existing = await prisma.viewFingerprint.findUnique({
-        where: { biolinkId_fingerprint: { biolinkId: biolink.id, fingerprint } },
-      });
-
-      if (!existing) {
+    if (!existing) {
+      try {
         await prisma.viewFingerprint.create({
           data: { biolinkId: biolink.id, fingerprint },
         });
         unique = true;
-      } else {
-        const now = new Date();
-        const fresh = now.getTime() - existing.firstSeenAt.getTime() < UNIQUE_WINDOW_MS;
-        if (!fresh) {
-          // La fenêtre de 24 h est écoulée : le navigateur redevient unique.
-          await prisma.viewFingerprint.update({
-            where: { id: existing.id },
-            data: { firstSeenAt: now, lastSeenAt: now },
-          });
-          unique = true;
+      } catch (error) {
+        // Course perdue : une requête concurrente a inséré le même hash entre
+        // notre findUnique et ce create. La vue existe déjà → non unique.
+        if (typeof error === "object" && error !== null && JSON.stringify(error).includes("P2002")) {
+          unique = false;
         } else {
-          await prisma.viewFingerprint.update({
-            where: { id: existing.id },
-            data: { lastSeenAt: now },
-          });
+          throw error;
         }
+      }
+    } else {
+      const now = new Date();
+      const fresh = now.getTime() - existing.firstSeenAt.getTime() < UNIQUE_WINDOW_MS;
+      if (!fresh) {
+        // La fenêtre de 24 h est écoulée : l'IP redevient unique.
+        await prisma.viewFingerprint.update({
+          where: { id: existing.id },
+          data: { firstSeenAt: now, lastSeenAt: now },
+        });
+        unique = true;
+      } else {
+        await prisma.viewFingerprint.update({
+          where: { id: existing.id },
+          data: { lastSeenAt: now },
+        });
       }
     }
 

@@ -154,8 +154,9 @@ const startOfUtcDay = (): Date => {
  * l'identique sur Postgres et sur n'importe quel moteur, là où le
  * `jsonb_set` manuscrit dépendait de subtilités du dialecte.
  *
- * `unique` distingue un visiteur déjà vu dans les 24 h. Le dédoublonnage est
- * porté par Redis (clé jetable avec TTL), pas par la base.
+ * `unique` distingue un visiteur (adresse IP) déjà vu dans les 24 h. Le
+ * dédoublonnage est fait en amont, dans la route /view, via la table
+ * `view_fingerprints` ; ce module ne fait qu'appliquer le drapeau.
  */
 export async function recordView(
   biolinkId: string,

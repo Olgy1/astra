@@ -221,7 +221,7 @@ model Biolink {
 
   // Compteurs dénormalisés : la page publique les affiche à chaque vue, on ne
   // veut pas agréger la table analytics à chaque rendu.
-  // totalViews : toutes les visites. uniqueViews : un navigateur par fenêtre
+  // totalViews : toutes les visites. uniqueViews : une adresse IP par fenêtre
   // de 24 h — c'est ce que le compteur public affiche.
   totalViews  Int @default(0) @map("total_views")
   uniqueViews Int @default(0) @map("unique_views")

@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { BlockDefinition } from "@/lib/blocks/types";
 
 /**
- * Compteur de visites. La valeur vient de `Biolink.uniqueViews` (un navigateur
- * par fenêtre de 24 h), jamais du config : sinon n'importe qui pourrait
+ * Compteur de visites. La valeur vient de `Biolink.uniqueViews` (une adresse
+ * IP par fenêtre de 24 h), jamais du config : sinon n'importe qui pourrait
  * s'afficher un million de vues.
  */
 const configSchema = z.object({

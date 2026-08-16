@@ -28,7 +28,7 @@ export default function PrivacyPage() {
       <div className="flex flex-col gap-2 pt-8">
         <LegalTitle>Politique de confidentialité</LegalTitle>
         <LegalIntro>
-          Dernière mise à jour : 15 août 2026. Astra est un service gratuit de création de
+          Dernière mise à jour : 16 août 2026. Astra est un service gratuit de création de
           pages « biolink ». Cette politique décrit les données personnelles réellement
           traitées par le service, leurs finalités, leur conservation et vos droits.
         </LegalIntro>
@@ -95,9 +95,9 @@ export default function PrivacyPage() {
           <strong className="font-medium text-content-primary">Statistiques.</strong> Pour
           chaque page : nombre de vues (totales et uniques), clics sur vos liens, provenance
           (site de référence) et, de façon agrégée, pays approximatif et type d&apos;appareil.
-          Pour le comptage des vues uniques, votre navigateur génère un identifiant
-          aléatoire conservé en stockage local et stocké haché côté serveur pendant 24
-          heures.
+          Pour le comptage des vues uniques, le service hache votre adresse IP et conserve
+          ce hachage pendant 24 heures ; l&apos;adresse IP en clair n&apos;est jamais stockée à
+          cette fin.
         </LegalP>
         <LegalP>
           <strong className="font-medium text-content-primary">Signalements.</strong> Si vous
@@ -155,7 +155,7 @@ export default function PrivacyPage() {
           items={[
             "Compte et contenu publié : tant que votre compte existe ; suppression possible à tout moment depuis les réglages du compte.",
             "Sessions : 30 jours maximum, ou à la fermeture du navigateur si l'option « Se souvenir de moi » n'est pas cochée.",
-            "Empreintes de vues uniques : 24 heures.",
+            "Hachages d'adresses IP utilisés pour le comptage des vues uniques : 24 heures.",
             "Jetons de vérification : 24 heures (vérification d'e-mail) ou 30 minutes (réinitialisation de mot de passe).",
             "Historique des emails : conservé à des fins de traçabilité technique.",
             "En cas de suppression du compte, vos pages, liens, médias et statistiques sont effacés. Certaines traces peuvent être conservées lorsque la loi l'exige.",
@@ -269,11 +269,11 @@ export default function PrivacyPage() {
               indispensables au service demandé.
             </>,
             <>
-              Un <strong className="font-medium text-content-primary">identifiant
-              aléatoire</strong> stocké dans le stockage local de votre navigateur
-              (localStorage), utilisé exclusivement pour compter les vues uniques de chaque
-              page. Il est propre au service, anonyme (il ne désigne qu&apos;un navigateur, pas
-              une personne) et n&apos;est communiqué à aucun tiers.
+              Pour compter les vues uniques de chaque page, le service hache l&apos;adresse IP
+              de la visite et conserve ce hachage pendant 24 heures côté serveur. Ce hachage
+              est propre au service, ne désigne pas directement une personne et n&apos;est
+              communiqué à aucun tiers ; l&apos;adresse IP en clair n&apos;est pas stockée à cette
+              fin.
             </>,
           ]}
         />
