@@ -34,6 +34,8 @@ const ACTION_LABELS: Record<string, string> = {
   "biolink.reset_stats": "Réinitialisation des statistiques",
   "stats.reset": "Réinitialisation globale des statistiques",
   "report.resolve": "Traitement de signalement",
+  "report.delete": "Suppression de signalement",
+  "suspension.delete": "Suppression de suspension",
   "slug.reserve": "Réservation de slug",
   "slug.release": "Libération de slug",
   "slug.blacklist.add": "Ajout à la blacklist",

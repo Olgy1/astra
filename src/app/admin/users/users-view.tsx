@@ -105,8 +105,8 @@ export function UsersView() {
 
   const saveLimit = async (user: UserRow) => {
     const value = Number.parseInt(limitDraft, 10);
-    if (!Number.isInteger(value) || value < 1) {
-      setError("La limite doit être un nombre entier d'au moins 1.");
+    if (!Number.isInteger(value) || value < -1 || value > 1000) {
+      setError("La limite doit être un nombre entier entre -1 (illimité) et 1000.");
       return;
     }
     const ok = await runAction(
@@ -266,7 +266,7 @@ export function UsersView() {
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
-                            min={1}
+                            min={-1}
                             value={limitDraft}
                             autoFocus
                             onChange={(event) => setLimitDraft(event.target.value)}
@@ -303,7 +303,9 @@ export function UsersView() {
                           className="rounded-md bg-surface-2 px-2 py-1 text-xs font-medium text-content-secondary transition-colors hover:bg-surface-3 disabled:opacity-50"
                           title="Changer la limite de pages"
                         >
-                          {user.pageLimit ?? 1} page{(user.pageLimit ?? 1) > 1 ? "s" : ""}
+                          {user.pageLimit === -1
+                            ? "Illimité"
+                            : `${user.pageLimit ?? 1} page${(user.pageLimit ?? 1) > 1 ? "s" : ""}`}
                         </button>
                       )}
                     </td>

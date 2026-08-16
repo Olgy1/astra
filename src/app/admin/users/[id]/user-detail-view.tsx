@@ -119,8 +119,8 @@ export function UserDetailView({ userId }: { userId: string }) {
 
   const saveLimit = async () => {
     const value = Number.parseInt(limitDraft, 10);
-    if (!Number.isInteger(value) || value < 1) {
-      setError("La limite doit être un nombre entier d'au moins 1.");
+    if (!Number.isInteger(value) || value < -1 || value > 1000) {
+      setError("La limite doit être un nombre entier entre -1 (illimité) et 1000.");
       return;
     }
     setLimitBusy(true);
@@ -134,7 +134,7 @@ export function UserDetailView({ userId }: { userId: string }) {
       setError(result.message);
       return;
     }
-    setNotice(`Limite fixée à ${value} page${value > 1 ? "s" : ""}.`);
+    setNotice(value === -1 ? "Limite fixée à illimité." : `Limite fixée à ${value} page${value > 1 ? "s" : ""}.`);
     load();
   };
 
@@ -219,6 +219,41 @@ export function UserDetailView({ userId }: { userId: string }) {
       return;
     }
     setNotice(result.data.message ?? "Suspension levée.");
+    load();
+  };
+
+  const deleteSuspension = async (suspensionId: string, slug: string) => {
+    if (
+      !window.confirm(
+        `Supprimer cette entrée de l'historique des suspensions de astraa.is-cool.dev/${slug} ? La page n'est pas affectée.`
+      )
+    )
+      return;
+    setBusy(`suspension:${suspensionId}`);
+    setError(null);
+    setNotice(null);
+    const result = await api.delete<{ message?: string }>(`/api/admin/suspensions/${suspensionId}`);
+    setBusy(null);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setNotice(result.data.message ?? "Entrée supprimée.");
+    load();
+  };
+
+  const deleteReport = async (reportId: string, slug: string) => {
+    if (!window.confirm(`Supprimer ce signalement de la page astraa.is-cool.dev/${slug} ?`)) return;
+    setBusy(`report:${reportId}`);
+    setError(null);
+    setNotice(null);
+    const result = await api.delete<{ message?: string }>(`/api/admin/reports/${reportId}`);
+    setBusy(null);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setNotice(result.data.message ?? "Signalement supprimé.");
     load();
   };
 
@@ -386,14 +421,16 @@ export function UserDetailView({ userId }: { userId: string }) {
               <p className="mt-0.5 text-xs text-content-muted">
                 {user.role === "ADMIN"
                   ? `Illimité — le rôle admin autorise autant de pages que nécessaire (${user.biolinks.length} actuellement).`
-                  : `${user.biolinks.length} page(s) utilisée(s) sur ${user.pageLimit ?? 1} autorisée(s).`}
+                  : user.pageLimit === -1
+                    ? `${user.biolinks.length} page(s) utilisée(s) · illimité.`
+                    : `${user.biolinks.length} page(s) utilisée(s) sur ${user.pageLimit ?? 1} autorisée(s).`}
               </p>
             </div>
             {user.role !== "ADMIN" && (
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min={1}
+                  min={-1}
                   value={limitDraft}
                   disabled={limitBusy}
                   onChange={(event) => setLimitDraft(event.target.value)}
@@ -565,9 +602,20 @@ export function UserDetailView({ userId }: { userId: string }) {
                       </Link>
                       <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyle}`}>{statusLabel}</span>
                     </p>
-                    <p className="text-xs text-content-muted">
-                      par <span className="font-medium text-content-secondary">{suspension.admin.username}</span>
-                    </p>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <p className="text-xs text-content-muted">
+                        par <span className="font-medium text-content-secondary">{suspension.admin.username}</span>
+                      </p>
+                      <button
+                        type="button"
+                        disabled={busy === `suspension:${suspension.id}`}
+                        onClick={() => deleteSuspension(suspension.id, suspension.biolink.slug)}
+                        className="rounded-lg bg-danger/15 px-2.5 py-1 font-medium text-danger transition-colors hover:bg-danger/25 disabled:opacity-50"
+                        title="Supprimer cette entrée de l'historique"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
                   </div>
                   <p className="mt-1.5 text-xs text-content-secondary">
                     du {formatDate(suspension.startedAt)} →{" "}
@@ -622,10 +670,20 @@ export function UserDetailView({ userId }: { userId: string }) {
                   <p className="text-xs text-content-muted">Pages signalées par d'autres</p>
                   <ul className="mt-1.5 flex flex-col gap-1.5 text-xs">
                     {user.reportsAgainst.map((report) => (
-                      <li key={report.id} className="rounded-lg bg-danger/10 p-2.5">
-                        <span className="font-medium">astraa.is-cool.dev/{report.biolink.slug}</span>
-                        <span className="text-content-muted"> — {report.reason}</span>
-                        <span className="ml-1 text-content-muted">({report.status.toLowerCase()})</span>
+                      <li key={report.id} className="flex items-center justify-between gap-2 rounded-lg bg-danger/10 p-2.5">
+                        <div className="min-w-0">
+                          <span className="font-medium">astraa.is-cool.dev/{report.biolink.slug}</span>
+                          <span className="text-content-muted"> — {report.reason}</span>
+                          <span className="ml-1 text-content-muted">({report.status.toLowerCase()})</span>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={busy === `report:${report.id}`}
+                          onClick={() => deleteReport(report.id, report.biolink.slug)}
+                          className="shrink-0 rounded-md bg-danger/15 px-2 py-1 text-xs font-medium text-danger transition-colors hover:bg-danger/25 disabled:opacity-50"
+                        >
+                          Supprimer
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -636,9 +694,19 @@ export function UserDetailView({ userId }: { userId: string }) {
                   <p className="text-xs text-content-muted">Signalements émis</p>
                   <ul className="mt-1.5 flex flex-col gap-1.5 text-xs">
                     {user.reportsMade.map((report) => (
-                      <li key={report.id} className="rounded-lg bg-surface-2 p-2.5">
-                        <span className="font-medium">astraa.is-cool.dev/{report.biolink.slug}</span>
-                        <span className="text-content-muted"> — {report.reason}</span>
+                      <li key={report.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 p-2.5">
+                        <div className="min-w-0">
+                          <span className="font-medium">astraa.is-cool.dev/{report.biolink.slug}</span>
+                          <span className="text-content-muted"> — {report.reason}</span>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={busy === `report:${report.id}`}
+                          onClick={() => deleteReport(report.id, report.biolink.slug)}
+                          className="shrink-0 rounded-md bg-danger/15 px-2 py-1 text-xs font-medium text-danger transition-colors hover:bg-danger/25 disabled:opacity-50"
+                        >
+                          Supprimer
+                        </button>
                       </li>
                     ))}
                   </ul>

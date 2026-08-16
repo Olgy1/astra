@@ -7,10 +7,10 @@ import { MEMBER_BIOLINK_LIMIT } from "@/lib/biolinks/access";
 
 type Context = { params: Promise<{ id: string }> };
 
-// null = limite par défaut (1 page pour un membre). Un nombre = limite
-// personnalisée. Un admin reste illimité quel que soit ce champ.
+// null = limite par défaut (1 page pour un membre). Un nombre >= 1 = limite
+// personnalisée. -1 = illimité. Un admin reste illimité quel que soit ce champ.
 const limitSchema = z.object({
-  pageLimit: z.number().int().min(1).max(1000).nullable(),
+  pageLimit: z.number().int().min(-1).max(1000).nullable(),
 });
 
 /**
@@ -35,7 +35,7 @@ export const PATCH = withErrorHandling(async (request: Request, context: Context
 
   if (!target) throw new ApiError("NOT_FOUND", "Cet utilisateur est introuvable.");
 
-  if (target.role !== "ADMIN" && input.pageLimit !== null) {
+  if (target.role !== "ADMIN" && input.pageLimit !== null && input.pageLimit !== -1) {
     const biolinkCount = await prisma.biolink.count({ where: { ownerId: target.id } });
 
     if (biolinkCount > input.pageLimit) {

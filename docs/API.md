@@ -151,7 +151,8 @@ Toutes ces routes exigent `role = ADMIN` et écrivent dans `admin_logs`.
 | `GET` | `/api/admin/users?q=&role=&status=&page=` | Recherche paginée. |
 | `GET` | `/api/admin/users/:id` | Fiche complète : biolinks, sessions, signalements, limite de pages. |
 | `PATCH` | `/api/admin/users/:id/role` | Change le rôle. **Refusé si le passage ADMIN → MEMBER laisse plus de biolinks que la limite du compte.** |
-| `PATCH` | `/api/admin/users/:id/limit` | Fixe la limite de pages du compte (`pageLimit`, ou `null` pour la défaut). **Refusé si la limite passe sous le nombre de pages existantes.** |
+| `PATCH` | `/api/admin/users/:id/limit` | Fixe la limite de pages du compte (`pageLimit`, `null` pour la défaut, ou `-1` pour illimité). **Refusé si la limite passe sous le nombre de pages existantes.** |
+| `DELETE` | `/api/admin/suspensions/:id` | Supprime une entrée de l'historique des suspensions (n'affecte pas la page). |
 | `POST` | `/api/admin/users/:id/ban` | Bannit, dépublie ses pages, révoque ses sessions. |
 | `POST` | `/api/admin/users/:id/suspend` | Suspend jusqu'à une date. |
 | `POST` | `/api/admin/users/:id/unban` | Lève la sanction. |

@@ -30,9 +30,9 @@ export default async function PanelPage() {
     orderBy: { createdAt: "asc" },
   });
 
-  // Limite effective de pages : illimité pour un admin, sinon la limite
-  // personnalisée du compte (ou 1 par défaut).
-  const pageLimit = isAdmin ? null : (user.pageLimit ?? 1);
+  // Limite effective de pages : illimité pour un admin (ou quand le compte
+  // porte -1), sinon la limite personnalisée du compte (ou 1 par défaut).
+  const pageLimit = isAdmin ? null : user.pageLimit === -1 ? null : (user.pageLimit ?? 1);
   const canCreateMore = pageLimit === null || biolinks.length < pageLimit;
 
   return (

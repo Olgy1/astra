@@ -13,17 +13,23 @@ import type { SessionUser } from "@/lib/auth/session";
 
 export const MEMBER_BIOLINK_LIMIT = 1;
 
+// `pageLimit` vaut `-1` quand un admin a choisi « illimité » pour un membre.
+// C'est une valeur stockée en base, distincte de `null` (limite par défaut).
+export const UNLIMITED_PAGE_LIMIT = -1;
+
 /**
  * Limite effective de pages d'un compte. null = illimité.
  *
  * Un admin est toujours illimité, quel que soit son `pageLimit` ; un membre
- * porte soit une limite personnalisée (pageLimit), soit la limite par défaut.
+ * porte soit une limite personnalisée (pageLimit), soit la limite par défaut,
+ * soit `-1` (= illimité).
  */
 export function biolinkLimitFor(
   role: SessionUser["role"],
   pageLimit: number | null
 ): number | null {
   if (role === "ADMIN") return null;
+  if (pageLimit === UNLIMITED_PAGE_LIMIT) return null;
   return pageLimit ?? MEMBER_BIOLINK_LIMIT;
 }
 

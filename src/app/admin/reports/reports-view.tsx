@@ -45,18 +45,20 @@ const STATUS_STYLES: Record<Report["status"], string> = {
   DISMISSED: "bg-surface-3 text-content-muted",
 };
 
+// Les motifs réels, stockés en minuscules par la route publique
+// /api/public/:slug/report (enum zod : spam, harassment, illegal,
+// impersonation, other).
 const REASON_LABELS: Record<string, string> = {
-  SPAM: "Spam",
-  SCAM: "Arnaque",
-  IMPERSONATION: "Usurpation d'identité",
-  HARASSMENT: "Harcèlement",
-  ILLEGAL: "Contenu illégal",
-  PHISHING: "Phishing",
-  OTHER: "Autre",
+  spam: "Spam",
+  harassment: "Harcèlement",
+  illegal: "Contenu illégal",
+  impersonation: "Usurpation d'identité",
+  other: "Autre",
 };
 
 export function ReportsView() {
   const [status, setStatus] = useState<Report["status"] | "">("PENDING");
+  const [reason, setReason] = useState<string>("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<ListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,12 +76,13 @@ export function ReportsView() {
     setError(null);
     const params = new URLSearchParams({ page: String(page), pageSize: "20" });
     if (status) params.set("status", status);
+    if (reason) params.set("reason", reason);
 
     api.get<ListResponse>(`/api/admin/reports?${params}`).then((result) => {
       if (result.ok) setData(result.data);
       else setError(result.message);
     });
-  }, [status, page]);
+  }, [status, reason, page]);
 
   useEffect(() => {
     load();
@@ -181,6 +184,22 @@ export function ReportsView() {
             {value === "" ? "Tous" : STATUS_LABELS[value]}
           </button>
         ))}
+        <select
+          value={reason}
+          onChange={(event) => {
+            setReason(event.target.value);
+            setPage(1);
+          }}
+          className="rounded-lg border border-border-subtle bg-surface-1 px-3 py-1.5 text-xs outline-none transition-colors focus:border-accent"
+          aria-label="Filtrer par motif"
+        >
+          <option value="">Tous les motifs</option>
+          {Object.entries(REASON_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {notice && (

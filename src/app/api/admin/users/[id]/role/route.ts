@@ -35,16 +35,19 @@ export const PATCH = withErrorHandling(async (request: Request, context: Context
   }
 
   if (target.role === "ADMIN" && input.role === "MEMBER") {
-    const biolinkCount = await prisma.biolink.count({ where: { ownerId: target.id } });
-    // À la rétrogradation, le compte devient soumis à sa limite de membre :
-    // la limite personnalisée (ou 1 par défaut) doit couvrir ses pages.
-    const allowed = target.pageLimit ?? MEMBER_BIOLINK_LIMIT;
+    // -1 = illimité : aucune vérification à faire.
+    if (target.pageLimit !== -1) {
+      const biolinkCount = await prisma.biolink.count({ where: { ownerId: target.id } });
+      // À la rétrogradation, le compte devient soumis à sa limite de membre :
+      // la limite personnalisée (ou 1 par défaut) doit couvrir ses pages.
+      const allowed = target.pageLimit ?? MEMBER_BIOLINK_LIMIT;
 
-    if (biolinkCount > allowed) {
-      throw new ApiError(
-        "CONFLICT",
-        `Ce compte possède ${biolinkCount} pages pour une limite de ${allowed}. Supprimez-en ${biolinkCount - allowed} avant de le rétrograder, ou augmentez d'abord sa limite.`
-      );
+      if (biolinkCount > allowed) {
+        throw new ApiError(
+          "CONFLICT",
+          `Ce compte possède ${biolinkCount} pages pour une limite de ${allowed}. Supprimez-en ${biolinkCount - allowed} avant de le rétrograder, ou augmentez d'abord sa limite.`
+        );
+      }
     }
   }
 

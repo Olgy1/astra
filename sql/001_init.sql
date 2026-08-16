@@ -431,14 +431,16 @@ DECLARE
     existing_count INTEGER;
 BEGIN
     -- FOR UPDATE : sérialise les insertions concurrentes du même propriétaire.
-    SELECT "role", COALESCE("page_limit", 1) INTO owner_role, owner_limit
+    SELECT "role", "page_limit" INTO owner_role, owner_limit
     FROM "users"
     WHERE "id" = NEW."owner_id"
     FOR UPDATE;
 
-    IF owner_role = 'ADMIN' THEN
-        RETURN NEW; -- biolinks illimités
+    IF owner_role = 'ADMIN' OR owner_limit = -1 THEN
+        RETURN NEW; -- biolinks illimités (admin, ou limite -1)
     END IF;
+
+    owner_limit := COALESCE(owner_limit, 1);
 
     SELECT COUNT(*) INTO existing_count
     FROM "biolinks"
@@ -470,15 +472,18 @@ DECLARE
     allowed INTEGER;
 BEGIN
     IF OLD."role" = 'ADMIN' AND NEW."role" = 'MEMBER' THEN
-        allowed := COALESCE(NEW."page_limit", 1);
+        -- page_limit = -1 signifie « illimité » : aucune vérification à faire.
+        IF NEW."page_limit" <> -1 THEN
+            allowed := COALESCE(NEW."page_limit", 1);
 
-        SELECT COUNT(*) INTO owned_count
-        FROM "biolinks"
-        WHERE "owner_id" = NEW."id";
+            SELECT COUNT(*) INTO owned_count
+            FROM "biolinks"
+            WHERE "owner_id" = NEW."id";
 
-        IF owned_count > allowed THEN
-            RAISE EXCEPTION 'ROLE_DOWNGRADE_BLOCKED: cet utilisateur possède % biolinks, sa limite est de %', owned_count, allowed
-                USING ERRCODE = 'check_violation';
+            IF owned_count > allowed THEN
+                RAISE EXCEPTION 'ROLE_DOWNGRADE_BLOCKED: cet utilisateur possède % biolinks, sa limite est de %', owned_count, allowed
+                    USING ERRCODE = 'check_violation';
+            END IF;
         END IF;
     END IF;
 

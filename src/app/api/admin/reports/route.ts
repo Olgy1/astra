@@ -5,20 +5,25 @@ import { requireAdmin } from "@/lib/auth/context";
 
 const querySchema = z.object({
   status: z.enum(["PENDING", "REVIEWING", "RESOLVED", "DISMISSED"]).optional(),
+  reason: z.string().trim().min(1).max(64).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 /**
- * GET /api/admin/reports?status=
+ * GET /api/admin/reports?status=&reason=
  * File de modération : les signalements, du plus récent au plus ancien,
- * filtrés par statut. PENDING par défaut, c'est-à-dire la file à traiter.
+ * filtrés par statut et/ou motif. PENDING par défaut, c'est-à-dire la file à
+ * traiter.
  */
 export const GET = withErrorHandling(async (request: Request) => {
   await requireAdmin();
   const query = parseQuery(request, querySchema);
 
-  const where = query.status ? { status: query.status } : {};
+  const where = {
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.reason ? { reason: query.reason } : {}),
+  };
 
   const [total, reports] = await Promise.all([
     prisma.report.count({ where }),
