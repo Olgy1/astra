@@ -61,11 +61,15 @@
   inset: 0;
   border-radius: inherit;
   padding: 1.5px;
+  /* Faisceau bicolore : deux arcs de couleurs à la suite. Quand les deux
+     couleurs sont identiques (valeur par défaut), les deux arcs fusionnent
+     en un seul — le rendu reste celui d'origine. */
   background: conic-gradient(
     from var(--beam-angle, 0deg),
     transparent 0deg,
-    var(--card-beam-color) 60deg,
-    transparent 120deg
+    var(--card-beam-color) 45deg,
+    var(--card-beam-color2) 90deg,
+    transparent 135deg
   );
   /* Masque : seul l'anneau de bordure reste visible, l'intérieur est découpé. */
   -webkit-mask:

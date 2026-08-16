@@ -13,6 +13,7 @@ import { VolumeControl } from "@/components/public/volume-control";
 import { MusicPlayer, PreviewAutoplay, type MusicTrack } from "@/components/public/music-player";
 import { ViewCounterBadge } from "@/components/public/view-counter-badge";
 import { CustomCursor } from "@/components/public/custom-cursor";
+import { SparkleTrail } from "@/components/public/sparkle-trail";
 import { TabTitle } from "@/components/public/tab-title";
 import { MediaLock } from "@/components/public/media-lock";
 import { ReportButton } from "@/components/public/report-button";
@@ -288,6 +289,11 @@ export function PageShell({ page, preview = false }: { page: PublicPage; preview
       {/* Le signalement n'a pas sa place dans l'aperçu de l'éditeur : c'est
           un outil pour les visiteurs, pas pour l'auteur de la page. */}
       {!preview && <ReportButton slug={page.slug} />}
+      {/* La traînée est indépendante du curseur personnalisé : on peut
+          l'avoir sans curseur custom, et inversement. */}
+      {theme.cursor.trailEnabled && (
+        <SparkleTrail color={theme.cursor.trailColor} color2={theme.cursor.trailColor2} kind={theme.cursor.trailKind} />
+      )}
       {theme.cursor.enabled && theme.cursor.url && <CustomCursor cursor={theme.cursor} />}
       {!preview && (
         <TabTitle

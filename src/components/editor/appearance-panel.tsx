@@ -184,7 +184,12 @@ export function AppearancePanel() {
         <SliderControl label="Bordure" value={theme.avatar.borderWidth} min={0} max={8} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, borderWidth: v } }))} />
         <ColorControl label="Couleur bordure" value={theme.avatar.borderColor} onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, borderColor: v } }))} />
         <ToggleControl label="Lueur" checked={theme.avatar.glowEnabled} onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, glowEnabled: v } }))} />
-        {theme.avatar.glowEnabled && <ColorControl label="Couleur lueur" value={theme.avatar.glowColor} onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, glowColor: v } }))} />}
+        {theme.avatar.glowEnabled && (
+          <>
+            <ColorControl label="Couleur lueur" value={theme.avatar.glowColor} onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, glowColor: v } }))} />
+            <ColorControl label="Couleur lueur secondaire" value={theme.avatar.glowColor2} onChange={(v) => updateTheme((c) => ({ ...c, avatar: { ...c.avatar, glowColor2: v } }))} />
+          </>
+        )}
       </ControlGroup>
 
       <ControlGroup title="Texte">
@@ -203,6 +208,7 @@ export function AppearancePanel() {
         {theme.typography.textGlow && (
           <>
             <ColorControl label="Couleur du halo" value={theme.typography.textGlowColor} onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, textGlowColor: v } }))} />
+            <ColorControl label="Couleur secondaire du halo" value={theme.typography.textGlowColor2} onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, textGlowColor2: v } }))} />
             <SliderControl label="Intensité du halo" value={theme.typography.textGlowIntensity} min={0} max={30} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, typography: { ...c.typography, textGlowIntensity: v } }))} />
           </>
         )}
@@ -217,9 +223,19 @@ export function AppearancePanel() {
         <ColorControl label="Couleur bordure" value={theme.card.borderColor} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, borderColor: v } }))} />
         <SliderControl label="Ombre" value={theme.card.shadowSize} min={0} max={64} unit="px" onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, shadowSize: v } }))} />
         <ToggleControl label="Lueur colorée" checked={theme.card.glowEnabled} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, glowEnabled: v } }))} />
-        {theme.card.glowEnabled && <ColorControl label="Couleur lueur" value={theme.card.glowColor} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, glowColor: v } }))} />}
+        {theme.card.glowEnabled && (
+          <>
+            <ColorControl label="Couleur lueur" value={theme.card.glowColor} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, glowColor: v } }))} />
+            <ColorControl label="Couleur lueur secondaire" value={theme.card.glowColor2} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, glowColor2: v } }))} />
+          </>
+        )}
         <ToggleControl label="Bordure animée" checked={theme.card.animatedBorder} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, animatedBorder: v } }))} />
-        {theme.card.animatedBorder && <ColorControl label="Couleur bordure animée" value={theme.card.animatedBorderColor} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, animatedBorderColor: v } }))} />}
+        {theme.card.animatedBorder && (
+          <>
+            <ColorControl label="Couleur bordure animée" value={theme.card.animatedBorderColor} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, animatedBorderColor: v } }))} />
+            <ColorControl label="Couleur bordure animée secondaire" value={theme.card.animatedBorderColor2} onChange={(v) => updateTheme((c) => ({ ...c, card: { ...c.card, animatedBorderColor2: v } }))} />
+          </>
+        )}
       </ControlGroup>
 
       <ControlGroup title="Disposition">

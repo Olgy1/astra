@@ -42,6 +42,8 @@ type Spark = {
   decay: number;
   size: number;
   spin: number;
+  /** Vrai quand la particule porte la couleur secondaire (si définie). */
+  alt: boolean;
 };
 
 type SpriteKind = Exclude<TrailKind, "circles" | "squares" | "astra">;
@@ -155,7 +157,7 @@ function makeSprite(kind: SpriteKind, color: string): HTMLCanvasElement {
   return sprite;
 }
 
-export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }) {
+export function SparkleTrail({ color, color2, kind }: { color: string; color2?: string; kind: TrailKind }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const normalized = normalizeKind(kind);
 
@@ -168,7 +170,13 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
     const context = canvas.getContext("2d");
     if (!context) return;
 
+    // Deux couleurs = deux sprites pré-rendus ; chaque particule en tire un
+    // au hasard à l'émission, pour un mélange vivant (la composition additive
+    // « lighter » fond les deux teintes entre elles). Sans couleur secondaire,
+    // un seul sprite : comportement identique à avant.
+    const useTwoColors = !!color2 && color2 !== color;
     const sprite = makeSprite(normalized, color);
+    const spriteAlt = useTwoColors ? makeSprite(normalized, color2!) : sprite;
     let width = 0;
     let height = 0;
     let sparks: Spark[] = [];
@@ -241,6 +249,7 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
           decay: 0.016 + Math.random() * 0.028,
           size,
           spin: Math.random() * Math.PI * 2,
+          alt: useTwoColors && Math.random() < 0.5,
         });
       }
 
@@ -299,14 +308,15 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
 
         context!.globalAlpha = Math.min(1, spark.life * 1.2);
         const drawSize = spark.size * factor;
+        const sparkSprite = spark.alt ? spriteAlt : sprite;
         if (rotates(normalized)) {
           context!.save();
           context!.translate(spark.x, spark.y);
           context!.rotate(spark.spin);
-          context!.drawImage(sprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+          context!.drawImage(sparkSprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
           context!.restore();
         } else {
-          context!.drawImage(sprite, spark.x - drawSize / 2, spark.y - drawSize / 2, drawSize, drawSize);
+          context!.drawImage(sparkSprite, spark.x - drawSize / 2, spark.y - drawSize / 2, drawSize, drawSize);
         }
       }
 
@@ -322,7 +332,7 @@ export function SparkleTrail({ color, kind }: { color: string; kind: TrailKind }
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMove);
     };
-  }, [color, normalized]);
+  }, [color, color2, normalized]);
 
   return (
     <canvas

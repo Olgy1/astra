@@ -44,13 +44,19 @@ export function EffectsPanel() {
             />
             <SliderControl label="Point actif horizontal" value={theme.cursor.hotspotX} min={0} max={64} unit="px" onChange={(hotspotX) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, hotspotX } }))} />
             <SliderControl label="Point actif vertical" value={theme.cursor.hotspotY} min={0} max={64} unit="px" onChange={(hotspotY) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, hotspotY } }))} />
-            <ToggleControl label="Traînée" description="Particules qui suivent le curseur." checked={theme.cursor.trailEnabled} onChange={(trailEnabled) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, trailEnabled } }))} />
-            {theme.cursor.trailEnabled && (
-              <>
-                <SelectControl label="Type de traînée" value={theme.cursor.trailKind} options={[{ value: "sparkles", label: "Étincelles" }, { value: "stars", label: "Étoiles" }, { value: "snow", label: "Neige" }, { value: "dust", label: "Poussière lumineuse" }, { value: "bubbles", label: "Bulles" }]} onChange={(trailKind) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, trailKind } }))} />
-                <ColorControl label="Couleur de la traînée" value={theme.cursor.trailColor} onChange={(trailColor) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, trailColor } }))} />
-              </>
-            )}
+            <p className="text-xs text-content-muted">
+              Un fichier <code>.cur</code> est pris en charge : son point actif est lu automatiquement.
+            </p>
+          </>
+        )}
+        {/* La traînée est indépendante du curseur personnalisé : on peut
+            l'activer seule. Les réglages vivent ici (elle suit le curseur). */}
+        <ToggleControl label="Traînée" description="Particules qui suivent le curseur — fonctionne aussi sans curseur personnalisé." checked={theme.cursor.trailEnabled} onChange={(trailEnabled) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, trailEnabled } }))} />
+        {theme.cursor.trailEnabled && (
+          <>
+            <SelectControl label="Type de traînée" value={theme.cursor.trailKind} options={[{ value: "sparkles", label: "Étincelles" }, { value: "stars", label: "Étoiles" }, { value: "snow", label: "Neige" }, { value: "dust", label: "Poussière lumineuse" }, { value: "bubbles", label: "Bulles" }]} onChange={(trailKind) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, trailKind } }))} />
+            <ColorControl label="Couleur de la traînée" value={theme.cursor.trailColor} onChange={(trailColor) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, trailColor } }))} />
+            <ColorControl label="Couleur secondaire" value={theme.cursor.trailColor2} onChange={(trailColor2) => updateTheme((c) => ({ ...c, cursor: { ...c.cursor, trailColor2 } }))} />
           </>
         )}
       </ControlGroup>

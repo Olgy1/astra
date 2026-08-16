@@ -96,6 +96,9 @@ export const typographySchema = z.object({
   /** Halo lumineux sous tout le texte (esthétique néon, très présente ici). */
   textGlow: z.boolean().default(false),
   textGlowColor: hexColor.default("#8b5cf6"),
+  /** Seconde couleur du halo (halo bicolore). Même valeur que la première par
+   * défaut : le rendu reste inchangé tant qu'on ne la modifie pas. */
+  textGlowColor2: hexColor.default("#8b5cf6"),
   textGlowIntensity: z.number().min(0).max(30).default(12),
   /** Rend le pseudo/titre en dégradé texte → accent, animé en boucle. */
   titleGradient: z.boolean().default(false),
@@ -113,9 +116,15 @@ export const cardSchema = z.object({
   /** Lueur colorée derrière la carte, très présente sur ce type de page. */
   glowEnabled: z.boolean().default(false),
   glowColor: hexColor.default("#8b5cf6"),
+  /** Seconde couleur de la lueur (lueur bicolore, un halo plus large et plus
+   * diffus dans cette teinte). Même valeur que la première par défaut. */
+  glowColor2: hexColor.default("#8b5cf6"),
   /** Bordure animée qui tourne autour de la carte (« border beam »). */
   animatedBorder: z.boolean().default(false),
   animatedBorderColor: hexColor.default("#8b5cf6"),
+  /** Seconde couleur de la bordure animée (faisceau bicolore). Même valeur
+   * que la première par défaut : un seul arc visible, comme avant. */
+  animatedBorderColor2: hexColor.default("#8b5cf6"),
 });
 
 export const avatarSchema = z.object({
@@ -125,6 +134,9 @@ export const avatarSchema = z.object({
   borderColor: hexColor.default("#8b5cf6"),
   glowEnabled: z.boolean().default(false),
   glowColor: hexColor.default("#8b5cf6"),
+  /** Seconde couleur de la lueur de l'avatar (halo bicolore). Même valeur que
+   * la première par défaut. */
+  glowColor2: hexColor.default("#8b5cf6"),
   /** Priorité à l'avatar du compte Discord lié, même si un avatar est uploadé. */
   useDiscord: z.boolean().default(false),
 });
@@ -195,6 +207,9 @@ export const cursorSchema = z.object({
   /** Traînée de particules suivant le curseur. */
   trailEnabled: z.boolean().default(false),
   trailColor: hexColor.default("#8b5cf6"),
+  /** Seconde couleur de la traînée (mélange bicolore des particules). Même
+   * valeur que la première par défaut : une seule couleur, comme avant. */
+  trailColor2: hexColor.default("#8b5cf6"),
   /**
    * Type de traînée. Les valeurs historiques (circles, squares, astra) sont
    * conservées pour ne pas invalider les thèmes existants : elles sont

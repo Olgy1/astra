@@ -51,9 +51,10 @@ export function themeToCssVars(theme: ThemeConfig): ThemeVars {
     "--page-font-size": `${typography.fontSize}px`,
     "--page-letter-spacing": `${typography.letterSpacing}px`,
     // Halo néon sous le texte : deux ombres pour un rendu plus dense qu'une
-    // seule. `none` désactive proprement sans laisser de trace.
+    // seule. Une seconde couleur (si différente) ajoute un halo plus diffus
+    // dans cette teinte — halo bicolore. `none` désactive proprement.
     "--page-text-glow": typography.textGlow
-      ? `0 0 ${typography.textGlowIntensity}px ${typography.textGlowColor}, 0 0 ${typography.textGlowIntensity * 2}px ${typography.textGlowColor}`
+      ? `0 0 ${typography.textGlowIntensity}px ${typography.textGlowColor}, 0 0 ${typography.textGlowIntensity * 2}px ${typography.textGlowColor}${typography.textGlowColor2 !== typography.textGlowColor ? `, 0 0 ${typography.textGlowIntensity * 1.5}px ${typography.textGlowColor2}` : ""}`
       : "none",
 
     "--card-bg": card.backgroundColor,
@@ -63,14 +64,22 @@ export function themeToCssVars(theme: ThemeConfig): ThemeVars {
     "--card-border-width": `${card.borderWidth}px`,
     "--card-border-color": card.borderColor,
     "--card-shadow": card.shadowSize > 0 ? `0 8px ${card.shadowSize}px ${card.shadowColor}` : "none",
-    "--card-glow": card.glowEnabled ? `0 0 60px -10px ${card.glowColor}` : "none",
+    // Lueur bicolore : un second halo, plus large et diffus, dans la seconde
+    // couleur — uniquement si elle diffère, pour ne pas changer les pages
+    // existantes.
+    "--card-glow": card.glowEnabled
+      ? `0 0 60px -10px ${card.glowColor}${card.glowColor2 !== card.glowColor ? `, 0 0 90px -12px ${card.glowColor2}` : ""}`
+      : "none",
     "--card-beam-color": card.animatedBorderColor,
+    "--card-beam-color2": card.animatedBorderColor2,
 
     "--avatar-size": `${avatar.size}px`,
     "--avatar-radius": avatar.shape === "circle" ? "9999px" : avatar.shape === "rounded" ? "16px" : "0px",
     "--avatar-border-width": `${avatar.borderWidth}px`,
     "--avatar-border-color": avatar.borderColor,
-    "--avatar-glow": avatar.glowEnabled ? `0 0 24px -2px ${avatar.glowColor}` : "none",
+    "--avatar-glow": avatar.glowEnabled
+      ? `0 0 24px -2px ${avatar.glowColor}${avatar.glowColor2 !== avatar.glowColor ? `, 0 0 40px -4px ${avatar.glowColor2}` : ""}`
+      : "none",
 
     "--layout-width": `${layout.maxWidth}px`,
     "--layout-gap": `${layout.spacing}px`,
@@ -79,6 +88,7 @@ export function themeToCssVars(theme: ThemeConfig): ThemeVars {
 
     "--tilt-intensity": effects.tiltIntensity,
     "--cursor-trail": cursor.trailColor,
+    "--cursor-trail-2": cursor.trailColor2,
   };
 }
 
