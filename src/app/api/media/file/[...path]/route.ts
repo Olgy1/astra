@@ -145,8 +145,23 @@ async function serveFromS3(
   try {
     result = await s3Client().send(command);
   } catch (error) {
-    // Absent ou accès refusé : même réponse côté client, on ne distingue pas.
     console.error("[media] erreur S3 :", error);
+    // On distingue le 403 (clé invalide, ou quota de téléchargement B2 du
+    // jour dépassé — le plan gratuit) du 404 (objet absent). Avant, tout
+    // tombait dans le même « Not found », et un quota B2 atteint se voyait
+    // comme une image cassée sans explication.
+    const status =
+      (error as { $metadata?: { httpStatusCode?: number } } | undefined)?.$metadata
+        ?.httpStatusCode ?? 0;
+    if (status === 403) {
+      return new Response(
+        "Stockage inaccessible (HTTP 403) : quota de téléchargement du jour atteint ou clé invalide.",
+        {
+          status: 403,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" },
+        }
+      );
+    }
     return new Response("Not found", { status: 404 });
   }
 
