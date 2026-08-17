@@ -23,6 +23,7 @@ export const GET = withErrorHandling(async (_request: Request, context: Context)
       email: true,
       role: true,
       pageLimit: true,
+      aliasLimit: true,
       status: true,
       emailVerified: true,
       emailVerifiedAt: true,
@@ -46,6 +47,10 @@ export const GET = withErrorHandling(async (_request: Request, context: Context)
           createdAt: true,
           _count: { select: { links: true, blocks: true } },
         },
+        orderBy: { createdAt: "asc" },
+      },
+      aliases: {
+        select: { id: true, slug: true, createdAt: true, biolink: { select: { id: true, slug: true } } },
         orderBy: { createdAt: "asc" },
       },
       sessions: {

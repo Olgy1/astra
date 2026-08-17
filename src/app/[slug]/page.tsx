@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getPublicPage } from "@/lib/biolinks/public";
+import { resolveAlias } from "@/lib/aliases/public";
 import { unlockCookieName, verifyUnlockToken } from "@/lib/biolinks/unlock";
 import { PageShell } from "@/components/public/page-shell";
 import { PasswordGate } from "@/components/public/password-gate";
@@ -30,7 +31,10 @@ function isSuspended(page: { suspendedUntil: string | null }): boolean {
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const page = await getPublicPage(slug);
+  // Un alias redirige vers la page bio : les métadonnées sont celles de la
+  // page cible (titre, description, Open Graph), pas un écran vide.
+  const aliasTarget = await resolveAlias(slug);
+  const page = await getPublicPage(aliasTarget ?? slug);
 
   if (!page) {
     return { title: "Page introuvable" };
@@ -65,6 +69,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicBiolinkPage({ params }: Props) {
   const { slug } = await params;
+
+  // Alias : redirection vers la page bio cible. C'est elle qui applique ses
+  // propres règles (publication, suspension, mot de passe).
+  const aliasTarget = await resolveAlias(slug);
+  if (aliasTarget) redirect(`/${aliasTarget}`);
+
   const page = await getPublicPage(slug);
 
   // notFound() couvre les trois cas indistinctement : page absente, non

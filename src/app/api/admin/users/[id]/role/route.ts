@@ -4,6 +4,7 @@ import { ApiError, clientIp, ok, parseBody, withErrorHandling } from "@/lib/api"
 import { requireAdmin } from "@/lib/auth/context";
 import { writeAdminLog } from "@/lib/admin/log";
 import { MEMBER_BIOLINK_LIMIT } from "@/lib/biolinks/access";
+import { MEMBER_ALIAS_LIMIT } from "@/lib/aliases/access";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -26,7 +27,7 @@ export const PATCH = withErrorHandling(async (request: Request, context: Context
 
   const target = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, username: true, role: true, pageLimit: true },
+    select: { id: true, username: true, role: true, pageLimit: true, aliasLimit: true },
   });
 
   if (!target) throw new ApiError("NOT_FOUND", "Cet utilisateur est introuvable.");
@@ -46,6 +47,18 @@ export const PATCH = withErrorHandling(async (request: Request, context: Context
         throw new ApiError(
           "CONFLICT",
           `Ce compte possède ${biolinkCount} pages pour une limite de ${allowed}. Supprimez-en ${biolinkCount - allowed} avant de le rétrograder, ou augmentez d'abord sa limite.`
+        );
+      }
+    }
+
+    if (target.aliasLimit !== -1) {
+      const aliasCount = await prisma.alias.count({ where: { ownerId: target.id } });
+      const allowed = target.aliasLimit ?? MEMBER_ALIAS_LIMIT;
+
+      if (aliasCount > allowed) {
+        throw new ApiError(
+          "CONFLICT",
+          `Ce compte possède ${aliasCount} alias pour une limite de ${allowed}. Supprimez-en ${aliasCount - allowed} avant de le rétrograder, ou augmentez d'abord sa limite d'alias.`
         );
       }
     }

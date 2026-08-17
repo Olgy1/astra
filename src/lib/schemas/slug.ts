@@ -110,7 +110,7 @@ export type SlugAvailability =
  */
 export async function checkSlugAvailability(
   slug: string,
-  options: { isAdmin?: boolean; excludeBiolinkId?: string } = {}
+  options: { isAdmin?: boolean; excludeBiolinkId?: string; excludeAliasId?: string } = {}
 ): Promise<SlugAvailability> {
   const normalized = slug.toLowerCase();
 
@@ -125,8 +125,14 @@ export async function checkSlugAvailability(
     };
   }
 
-  const [existing, reserved, blacklisted] = await Promise.all([
+  const [existing, existingAlias, reserved, blacklisted] = await Promise.all([
     prisma.biolink.findUnique({
+      where: { slug: normalized },
+      select: { id: true },
+    }),
+    // Un alias partage le même espace d'adresses qu'une page : les deux ne
+    // peuvent pas porter le même lien.
+    prisma.alias.findUnique({
       where: { slug: normalized },
       select: { id: true },
     }),
@@ -142,6 +148,14 @@ export async function checkSlugAvailability(
   ]);
 
   if (existing && existing.id !== options.excludeBiolinkId) {
+    return {
+      available: false,
+      reason: "TAKEN",
+      message: "Ce lien est déjà utilisé.",
+    };
+  }
+
+  if (existingAlias && existingAlias.id !== options.excludeAliasId) {
     return {
       available: false,
       reason: "TAKEN",
@@ -198,8 +212,12 @@ export async function suggestAlternatives(
 
   if (candidates.length === 0) return [];
 
-  const [taken, reserved] = await Promise.all([
+  const [taken, takenAlias, reserved] = await Promise.all([
     prisma.biolink.findMany({
+      where: { slug: { in: candidates } },
+      select: { slug: true },
+    }),
+    prisma.alias.findMany({
       where: { slug: { in: candidates } },
       select: { slug: true },
     }),
@@ -211,6 +229,7 @@ export async function suggestAlternatives(
 
   const unavailable = new Set([
     ...taken.map((row) => row.slug),
+    ...takenAlias.map((row) => row.slug),
     ...reserved.map((row) => row.slug),
   ]);
 

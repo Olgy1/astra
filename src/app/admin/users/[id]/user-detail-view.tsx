@@ -10,6 +10,7 @@ type UserDetail = {
   email: string;
   role: "MEMBER" | "ADMIN";
   pageLimit: number | null;
+  aliasLimit: number | null;
   status: "ACTIVE" | "SUSPENDED" | "BANNED";
   emailVerified: boolean;
   emailVerifiedAt: string | null;
@@ -31,6 +32,12 @@ type UserDetail = {
     uniqueViews: number;
     createdAt: string;
     _count: { links: number; blocks: number };
+  }[];
+  aliases: {
+    id: string;
+    slug: string;
+    createdAt: string;
+    biolink: { id: string; slug: string };
   }[];
   sessions: {
     id: string;
@@ -103,6 +110,7 @@ export function UserDetailView({ userId }: { userId: string }) {
       if (result.ok) {
         setUser(result.data.user);
         setLimitDraft(String(result.data.user.pageLimit ?? 1));
+        setAliasLimitDraft(String(result.data.user.aliasLimit ?? 2));
       } else {
         setError(result.message);
       }
@@ -116,6 +124,10 @@ export function UserDetailView({ userId }: { userId: string }) {
   // Limite de pages : brouillon local, enregistré via l'API admin.
   const [limitDraft, setLimitDraft] = useState("1");
   const [limitBusy, setLimitBusy] = useState(false);
+
+  // Limite d'alias : même mécanisme que la limite de pages.
+  const [aliasLimitDraft, setAliasLimitDraft] = useState("2");
+  const [aliasLimitBusy, setAliasLimitBusy] = useState(false);
 
   const saveLimit = async () => {
     const value = Number.parseInt(limitDraft, 10);
@@ -151,6 +163,45 @@ export function UserDetailView({ userId }: { userId: string }) {
       return;
     }
     setNotice("Limite par défaut rétablie (1 page).");
+    load();
+  };
+
+  const saveAliasLimit = async () => {
+    const value = Number.parseInt(aliasLimitDraft, 10);
+    if (!Number.isInteger(value) || value < -1 || value > 1000) {
+      setError("La limite d'alias doit être un nombre entier entre -1 (illimité) et 1000.");
+      return;
+    }
+    setAliasLimitBusy(true);
+    setError(null);
+    setNotice(null);
+    const result = await api.patch<{ user: { aliasLimit: number | null } }>(
+      `/api/admin/users/${userId}/alias-limit`,
+      { aliasLimit: value }
+    );
+    setAliasLimitBusy(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setNotice(value === -1 ? "Limite d'alias fixée à illimité." : `Limite d'alias fixée à ${value}.`);
+    load();
+  };
+
+  const resetAliasLimit = async () => {
+    setAliasLimitBusy(true);
+    setError(null);
+    setNotice(null);
+    const result = await api.patch<{ user: { aliasLimit: number | null } }>(
+      `/api/admin/users/${userId}/alias-limit`,
+      { aliasLimit: null }
+    );
+    setAliasLimitBusy(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setNotice("Limite d'alias par défaut rétablie (2 alias).");
     load();
   };
 
@@ -459,6 +510,51 @@ export function UserDetailView({ userId }: { userId: string }) {
           </div>
         </div>
 
+        <div className="mt-4 border-t border-border-subtle pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-medium">Limite d&apos;alias</h4>
+              <p className="mt-0.5 text-xs text-content-muted">
+                {user.role === "ADMIN"
+                  ? `Illimité — le rôle admin autorise autant d'alias que nécessaire (${user.aliases.length} actuellement).`
+                  : user.aliasLimit === -1
+                    ? `${user.aliases.length} alias utilisé(s) · illimité.`
+                    : `${user.aliases.length} alias utilisé(s) sur ${user.aliasLimit ?? 2} autorisé(s).`}
+              </p>
+            </div>
+            {user.role !== "ADMIN" && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={-1}
+                  value={aliasLimitDraft}
+                  disabled={aliasLimitBusy}
+                  onChange={(event) => setAliasLimitDraft(event.target.value)}
+                  className="w-20 rounded-lg border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm outline-none transition-colors focus:border-accent disabled:opacity-50"
+                  aria-label="Limite d'alias"
+                />
+                <button
+                  type="button"
+                  disabled={aliasLimitBusy}
+                  onClick={saveAliasLimit}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  Enregistrer
+                </button>
+                <button
+                  type="button"
+                  disabled={aliasLimitBusy}
+                  onClick={resetAliasLimit}
+                  className="rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-3 disabled:opacity-50"
+                  title="Rétablir la limite par défaut (2 alias)"
+                >
+                  Par défaut
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {user.statusReason && (
           <p className="mt-4 rounded-xl bg-surface-2 p-3 text-xs text-content-secondary">
             Motif de la sanction : {user.statusReason}
@@ -566,6 +662,26 @@ export function UserDetailView({ userId }: { userId: string }) {
                   >
                     Supprimer
                   </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-border-subtle bg-surface-1 p-5">
+        <h3 className="text-sm font-medium">Alias ({user.aliases.length})</h3>
+        {user.aliases.length === 0 ? (
+          <p className="mt-3 text-sm text-content-muted">Aucun alias.</p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-2">
+            {user.aliases.map((alias) => (
+              <li key={alias.id} className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">astraa.is-cool.dev/{alias.slug}</p>
+                  <p className="mt-0.5 text-xs text-content-muted">
+                    → astraa.is-cool.dev/{alias.biolink.slug}
+                  </p>
                 </div>
               </li>
             ))}

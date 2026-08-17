@@ -64,6 +64,9 @@ export type SessionUser = {
   // pour un admin). Portée par la session car elle est relue en base à chaque
   // getCurrentUser — changer la limite prend effet immédiatement.
   pageLimit: number | null;
+  // Limite d'alias personnalisée (NULL = défaut : 2 pour un membre, illimité
+  // pour un admin). Même règle de relecture que pageLimit.
+  aliasLimit: number | null;
   emailVerified: boolean;
   twoFactorEnabled: boolean;
   discordId: string | null;
@@ -165,6 +168,7 @@ export async function refreshSession(): Promise<RefreshOutcome> {
           email: true,
           role: true,
           pageLimit: true,
+          aliasLimit: true,
           status: true,
           emailVerified: true,
           twoFactorEnabled: true,
@@ -237,6 +241,7 @@ export async function refreshSession(): Promise<RefreshOutcome> {
       email: session.user.email,
       role: session.user.role,
       pageLimit: session.user.pageLimit,
+      aliasLimit: session.user.aliasLimit,
       emailVerified: session.user.emailVerified,
       twoFactorEnabled: session.user.twoFactorEnabled,
       discordId: session.user.discordId,

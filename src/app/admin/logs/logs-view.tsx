@@ -22,6 +22,7 @@ type ListResponse = {
 const ACTION_LABELS: Record<string, string> = {
   "user.role": "Changement de rôle",
   "user.page_limit": "Changement de limite de pages",
+  "user.alias_limit": "Changement de limite d'alias",
   "user.ban": "Bannissement",
   "user.suspend": "Suspension",
   "user.unban": "Levée de sanction",

@@ -7,6 +7,7 @@ import { EmailVerificationBanner } from "./verification-banner";
 import { LogoutButton } from "./logout-button";
 import { CreatePageButton } from "./create-page-button";
 import { DeletePageButton } from "./delete-page-button";
+import { AliasesSection } from "./aliases-section";
 
 export const metadata: Metadata = { title: "Mon panel" };
 
@@ -34,6 +35,14 @@ export default async function PanelPage() {
   // porte -1), sinon la limite personnalisée du compte (ou 1 par défaut).
   const pageLimit = isAdmin ? null : user.pageLimit === -1 ? null : (user.pageLimit ?? 1);
   const canCreateMore = pageLimit === null || biolinks.length < pageLimit;
+
+  // Alias : adresses courtes qui redirigent vers une page bio.
+  const aliases = await prisma.alias.findMany({
+    where: { ownerId: user.id },
+    select: { id: true, slug: true, biolink: { select: { slug: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  const aliasLimit = isAdmin ? null : user.aliasLimit === -1 ? null : (user.aliasLimit ?? 2);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-3xl flex-col gap-6 px-6 py-10">
@@ -103,6 +112,12 @@ export default async function PanelPage() {
             : `${biolinks.length} / ${pageLimit} page${pageLimit > 1 ? "s" : ""}`}
         </p>
       </section>
+
+      <AliasesSection
+        aliases={aliases.map((alias) => ({ id: alias.id, slug: alias.slug, biolinkSlug: alias.biolink.slug }))}
+        biolinks={biolinks.map((biolink) => ({ id: biolink.id, slug: biolink.slug }))}
+        aliasLimit={aliasLimit}
+      />
 
       <section className="rounded-2xl border border-border-subtle bg-surface-1 p-6">
         <h2 className="text-sm font-medium">Compte</h2>

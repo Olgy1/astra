@@ -95,6 +95,10 @@ model User {
   // (1 page). Un admin est toujours illimité, quel que soit ce champ.
   pageLimit Int? @map("page_limit")
 
+  // Limite d'alias pour un compte membre. NULL = limite par défaut
+  // (2 alias). Un admin est toujours illimité, quel que soit ce champ.
+  aliasLimit Int? @map("alias_limit")
+
   emailVerified   Boolean   @default(false) @map("email_verified")
   emailVerifiedAt DateTime? @map("email_verified_at")
 
@@ -125,6 +129,7 @@ model User {
   lastLogin DateTime? @map("last_login_at")
 
   biolinks     Biolink[]
+  aliases      Alias[]
   sessions     Session[]
   tokens       VerificationToken[]
   mediaAssets  MediaAsset[]
@@ -230,6 +235,7 @@ model Biolink {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  aliases     Alias[]
   links           Link[]
   blocks          Block[]
   mediaAssets     MediaAsset[]
@@ -241,6 +247,28 @@ model Biolink {
   @@index([ownerId])
   @@index([isPublished])
   @@map("biolinks")
+}
+
+// Un alias est une adresse courte (`astraa.is-cool.dev/monalias`) qui
+// redirige vers la page bio d'un compte. Il suit les mêmes règles de slug
+// qu'une page (unicité globale, blacklist, mots réservés) et son quota est
+// porté par `users.alias_limit` (2 par défaut, -1 = illimité, illimité pour
+// un admin).
+model Alias {
+  id        String   @id @default(uuid()) @db.Uuid
+  ownerId   String   @map("owner_id") @db.Uuid
+  biolinkId String   @map("biolink_id") @db.Uuid
+  slug      String   @unique @db.VarChar(64)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner   User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  biolink Biolink @relation(fields: [biolinkId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([biolinkId])
+  @@map("aliases")
 }
 
 model Link {
