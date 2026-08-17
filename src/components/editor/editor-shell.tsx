@@ -19,7 +19,7 @@ const TABS: { id: TabId; label: string; description: string }[] = [
   { id: "appearance", label: "Apparence", description: "Arrière-plan, couleurs, typographie, carte, avatar, bannière et mise en page." },
   { id: "effects", label: "Effets", description: "Curseur, particules, animations du texte, écran d'entrée et compteur de vues." },
   { id: "music", label: "Musique", description: "Le son de la page : audio de la vidéo de fond, pistes et lecteur." },
-  { id: "settings", label: "Réglages", description: "Adresse, référencement et protection par mot de passe." },
+  { id: "settings", label: "Réglages", description: "L'adresse de la page et le titre de l'onglet." },
 ];
 
 /**
