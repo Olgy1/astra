@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "olgy.is-not-a.dev"
+        }
+      ],
+      "destination": "https://astraa.is-cool.dev/olgy",
+      "permanent": true
+    }
+  ]
+}
